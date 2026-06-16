@@ -221,10 +221,31 @@ func (r *Repo) InitFrom(src string) (*dag.Node, error) {
 			exclude[p] = true
 		}
 	}
-	fmt.Printf("seeding rootfs from %s (this is a one-time copy) ...\n", src)
-	if err := image.SeedDir(src, r.workRoot(), exclude); err != nil {
+	fmt.Fprintf(os.Stderr, "seeding rootfs from %s (one-time copy)...\n", src)
+	// Throttled progress: `init --from /` on a multi-GB image takes minutes,
+	// and a silent copy is indistinguishable from a hang. Repaint a single
+	// stderr line ~4×/s with running file + byte counts. Throttling keeps the
+	// hot copy loop from doing a syscall per file just to print.
+	start := time.Now()
+	var last time.Time
+	var totFiles int
+	var totBytes int64
+	prog := func(files int, bytes int64) {
+		totFiles, totBytes = files, bytes
+		now := time.Now()
+		if now.Sub(last) < 250*time.Millisecond {
+			return
+		}
+		last = now
+		fmt.Fprintf(os.Stderr, "\r  %d files, %s copied...", files, humanBytes(bytes))
+	}
+	if err := image.SeedDir(src, r.workRoot(), exclude, prog); err != nil {
+		fmt.Fprintln(os.Stderr)
 		return nil, err
 	}
+	// \r + trailing spaces overwrite the last (possibly longer) progress line.
+	fmt.Fprintf(os.Stderr, "\r  %d files, %s copied in %s%s\n",
+		totFiles, humanBytes(totBytes), time.Since(start).Round(time.Second), strings.Repeat(" ", 12))
 	id := r.newID()
 	if err := r.be.Snapshotter.Freeze(id, ""); err != nil {
 		return nil, err

@@ -26,7 +26,7 @@
   // behind deb.debian.org from mainland China. The env var flows in via
   // containerEnv below; OSS users outside China leave it unset and the
   // mirror swap is a no-op.
-  "postCreateCommand": ".devcontainer/postcreate.sh",
+  "postCreateCommand": "bash .devcontainer/postcreate.sh",
   "containerEnv": {
     "AGENTENV_CN_MIRROR": "${localEnv:AGENTENV_CN_MIRROR}"
   },

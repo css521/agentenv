@@ -85,13 +85,26 @@ func openTarballSource(src string) (io.Reader, func(), error) {
 	return f, func() { f.Close() }, nil
 }
 
+// Progress reports seeding progress. It is called after each regular file is
+// copied, with the running count of files and bytes copied so far. Callers
+// typically throttle their own rendering (it fires very frequently); pass nil
+// to SeedDir to disable. Directories and symlinks don't trigger it (they carry
+// ~no bytes and would just add noise to a "GB copied" readout).
+type Progress func(files int, bytes int64)
+
 // SeedDir copies the tree at src into dst, skipping any path in exclude (and not
 // descending into excluded directories). It is best-effort: unreadable files
 // (e.g. root-owned files when running unprivileged) and special files (devices,
 // FIFOs, sockets) are skipped rather than aborting — so seeding from "/" inside a
 // container works even as a non-root user.
-func SeedDir(src, dst string, exclude map[string]bool) error {
+//
+// If progress is non-nil it is called after each regular file with cumulative
+// (files, bytes) counts — `init --from /` on a multi-GB image can take minutes,
+// and a silent copy looks like a hang.
+func SeedDir(src, dst string, exclude map[string]bool, progress Progress) error {
 	src = filepath.Clean(src)
+	var files int
+	var bytes int64
 	return filepath.Walk(src, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return nil // tolerate unreadable/disappearing entries (e.g. /proc races)
@@ -120,7 +133,11 @@ func SeedDir(src, dst string, exclude map[string]bool) error {
 				_ = os.Symlink(link, target)
 			}
 		case fi.Mode().IsRegular():
-			_ = seedCopyFile(path, target, fi)
+			if seedCopyFile(path, target, fi) == nil && progress != nil {
+				files++
+				bytes += fi.Size()
+				progress(files, bytes)
+			}
 		}
 		return nil
 	})

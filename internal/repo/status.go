@@ -3,6 +3,7 @@
 package repo
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -95,4 +96,21 @@ func dirRealSize(dir string) int64 {
 		return nil
 	})
 	return total
+}
+
+// humanBytes formats a byte count as a short human-readable string (B/KB/MB/GB).
+// Used by the init --from progress readout. (The CLI layer has its own copy for
+// `status` output; this one keeps the repo package self-contained.)
+func humanBytes(n int64) string {
+	const k = 1024
+	switch {
+	case n < k:
+		return fmt.Sprintf("%dB", n)
+	case n < k*k:
+		return fmt.Sprintf("%.1fKB", float64(n)/k)
+	case n < k*k*k:
+		return fmt.Sprintf("%.1fMB", float64(n)/(k*k))
+	default:
+		return fmt.Sprintf("%.2fGB", float64(n)/(k*k*k))
+	}
 }

@@ -52,8 +52,19 @@ func TestSeedDirCopiesAndExcludes(t *testing.T) {
 
 	dst := t.TempDir()
 	exclude := map[string]bool{filepath.Join(src, "proc"): true}
-	if err := SeedDir(src, dst, exclude); err != nil {
+	var lastFiles int
+	var lastBytes int64
+	prog := func(files int, bytes int64) { lastFiles, lastBytes = files, bytes }
+	if err := SeedDir(src, dst, exclude, prog); err != nil {
 		t.Fatalf("SeedDir: %v", err)
+	}
+	// Two regular files copied (root/a.txt + usr/bin/tool; proc/fake excluded,
+	// the symlink doesn't count). Bytes = len("A") + len("bin") = 4.
+	if lastFiles != 2 {
+		t.Errorf("progress files = %d, want 2", lastFiles)
+	}
+	if lastBytes != 4 {
+		t.Errorf("progress bytes = %d, want 4", lastBytes)
 	}
 
 	if b, err := os.ReadFile(filepath.Join(dst, "root/a.txt")); err != nil || string(b) != "A" {
