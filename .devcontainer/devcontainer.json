@@ -18,15 +18,18 @@
 
   // No `features` block: the MS Go devcontainer image already ships the
   // vscode user, sudo, git, curl, zsh, oh-my-zsh, and everything else
-  // common-utils would have installed — adding the feature just re-runs
-  // a 2-minute apt-get for nothing (and stalls behind deb.debian.org on
-  // slow networks).
+  // common-utils would have installed.
   //
-  // libbtrfs-dev lets you build with `-tags btrfs` (the optional fast-path
-  // backend that needs cgo); the default static build needs nothing.
-  // `sudo` because lifecycle commands run as remoteUser (vscode), and the
-  // base image's vscode user has passwordless sudo configured.
-  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y -qq libbtrfs-dev make",
+  // postcreate.sh installs libbtrfs-dev + make (so `-tags btrfs` builds
+  // work), and — if AGENTENV_CN_MIRROR=1 was set on the host — swaps
+  // /etc/apt sources to mirrors.aliyun.com so apt-get doesn't stall
+  // behind deb.debian.org from mainland China. The env var flows in via
+  // containerEnv below; OSS users outside China leave it unset and the
+  // mirror swap is a no-op.
+  "postCreateCommand": ".devcontainer/postcreate.sh",
+  "containerEnv": {
+    "AGENTENV_CN_MIRROR": "${localEnv:AGENTENV_CN_MIRROR}"
+  },
   // Show the Makefile target list every time the container is attached, so a new
   // contributor immediately sees what they can do (build / test / verify / demo).
   "postAttachCommand": "make help",

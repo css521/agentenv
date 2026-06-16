@@ -16,6 +16,10 @@ Most of agentenv is Linux-only (namespaces, pivot_root). On macOS you can edit a
 cross-compile (`GOOS=linux CGO_ENABLED=0 go build ./...`) and run the portable
 unit tests, but exercise the runtime in a Linux VM or Docker.
 
+The `.devcontainer/` config is opt-in to a mainland-China apt mirror — set
+`AGENTENV_CN_MIRROR=1` on your host before "Reopen in Container" if
+deb.debian.org is slow for you; leave it unset everywhere else.
+
 ## Before opening a PR
 
 ```bash
