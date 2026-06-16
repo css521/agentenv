@@ -42,7 +42,8 @@ var alwaysIgnore = []string{"proc", "sys", "dev", ".pivot_old", ".agentenv"}
 //   - atomic-write + editor temp files: *.tmp.*, *.swp, *~ (any depth)
 var baseIgnore = []string{
 	"tmp", "var/tmp", "var/cache", "var/lib/apt/lists",
-	".cache", ".npm", ".local", ".claude",
+	".cache", ".npm", ".local",
+	".claude*", // the .claude dir AND .claude.json / .claude.json.lock / .tmp siblings
 	"*.tmp.*", "*.swp", "*~",
 }
 

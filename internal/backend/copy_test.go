@@ -6,7 +6,7 @@ import "testing"
 
 func TestIgnoredMatching(t *testing.T) {
 	// Mix of anchored (with "/") and segment/glob (no "/") patterns.
-	s := &copySnap{ignore: []string{"var/lib/apt/lists", ".claude", ".cache", "*.tmp.*"}}
+	s := &copySnap{ignore: []string{"var/lib/apt/lists", ".claude*", ".cache", "*.tmp.*"}}
 
 	cases := []struct {
 		rel  string
@@ -25,9 +25,10 @@ func TestIgnoredMatching(t *testing.T) {
 		// glob: atomic-write temp files anywhere
 		{"hello.py.tmp.9.08cb3a25d56c", true},
 		{"work/hello.py.tmp.9.08cb3a25d56c", true},
-		{"root/.claude.json.tmp.8.0ee0fa83", true}, // matches *.tmp.* (and .claude segment? no — but tmp glob yes)
+		{"root/.claude.json", true},                // .claude* matches the file too
+		{"root/.claude.json.lock", true},           // .claude* covers the lock sibling
+		{"root/.claude.json.tmp.8.0ee0fa83", true}, // *.tmp.* (and .claude*)
 		// must NOT over-match
-		{".clauderc", false},
 		{"work/hello.py", false},
 		{"var/lib/apt/extended_states", false},
 		{"home/user/notes.md", false},
