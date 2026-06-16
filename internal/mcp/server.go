@@ -35,10 +35,6 @@ import (
 	"github.com/css521/agentenv/internal/protocol"
 )
 
-// version reported to clients in the initialize handshake. Bumped alongside
-// the agentenv release tag.
-const serverVersion = "0.1.0"
-
 // emptyArgs is the input type for the zero-arg tools (head, log, branches).
 // The SDK still infers a JSON Schema object for it; empty struct → "no
 // properties, no required" — exactly what we want.
@@ -55,11 +51,14 @@ type diffArgs struct {
 
 // Serve runs the MCP server on stdin/stdout (the transport Claude Code uses
 // when it spawns this binary), bridging tool calls to the agentenv daemon's
-// unix socket. Returns when stdin EOFs or ctx is cancelled.
-func Serve(ctx context.Context, sock string) error {
+// unix socket. The `version` is reported to clients in the initialize
+// handshake — pass the agentenv binary's resolved release tag (main.go's
+// resolveVersion) so MCP hosts can log which build they connected to.
+// Returns when stdin EOFs or ctx is cancelled.
+func Serve(ctx context.Context, sock, version string) error {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "agentenv",
-		Version: serverVersion,
+		Version: version,
 	}, nil)
 	register(server, sock)
 	err := server.Run(ctx, &mcp.StdioTransport{})

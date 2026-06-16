@@ -27,11 +27,11 @@ import (
 //
 // Sockets are resolved via --socket / AGENTENV_SOCKET / AGENTENV_ROOT in that
 // order. Cancelled by SIGINT/SIGTERM (typical: Claude Code closes stdin).
-func cmdMCP(args []string) error {
+func cmdMCP(args []string, version string) error {
 	sock := daemonclient.SocketPath(flagValue(args, "--socket"))
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
-	return mcp.Serve(ctx, sock)
+	return mcp.Serve(ctx, sock, version)
 }
 
 // cmdInit creates the root node from one of two sources, exactly one of which

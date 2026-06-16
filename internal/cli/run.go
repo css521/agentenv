@@ -44,7 +44,10 @@ func Run(version string) int {
 		// MCP server (stdio JSON-RPC) — bridges Claude Code / other MCP hosts
 		// to a running daemon. No repo/lock here either: it forwards every
 		// call as a fresh socket round-trip, so the daemon owns concurrency.
-		if err := cmdMCP(rest); err != nil {
+		// `version` flows from main.resolveVersion → the MCP initialize
+		// handshake's serverInfo.version, so hosts log which build they're
+		// talking to.
+		if err := cmdMCP(rest, version); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			return 1
 		}

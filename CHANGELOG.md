@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-06-16
+
+### Changed
+- `mcp.Serve` now takes the agentenv binary's resolved release tag and
+  reports it in the MCP `initialize` handshake's `serverInfo.version`
+  (previously hard-coded to `"0.1.0"`). Single source of truth — bumping
+  the next tag no longer needs a code edit.
+
+### Fixed
+- `gofmt` formatting on three files (`internal/cli/ctl.go`,
+  `internal/mcp/server.go`, `internal/mcp/server_test.go`); CI was red
+  on the first push.
+- `staticcheck` ST1005: dropped trailing `...` from two `tournament`
+  usage error strings (illustrative, not literal).
+
 ## [0.1.0] - 2026-06-16
 
 First public release. The whole rewindable-environment story end-to-end —
@@ -103,4 +118,5 @@ drive rollback natively.
   incremental checkout (copy only the diff); `AGENTENV_IGNORE` excludes ephemeral
   paths; auto-snapshot labels list the changed files.
 
+[0.1.1]: https://github.com/css521/agentenv/releases/tag/v0.1.1
 [0.1.0]: https://github.com/css521/agentenv/releases/tag/v0.1.0

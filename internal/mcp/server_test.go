@@ -100,7 +100,7 @@ func (d *fakeDaemon) requests() []protocol.Request {
 // Claude Code would drive us, minus the stdio framing.
 func startMCP(t *testing.T, sock string) *mcpsdk.ClientSession {
 	t.Helper()
-	server := mcpsdk.NewServer(&mcpsdk.Implementation{Name: "agentenv", Version: serverVersion}, nil)
+	server := mcpsdk.NewServer(&mcpsdk.Implementation{Name: "agentenv", Version: "test"}, nil)
 	register(server, sock)
 
 	t1, t2 := mcpsdk.NewInMemoryTransports()
