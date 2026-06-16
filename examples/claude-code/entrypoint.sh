@@ -20,18 +20,21 @@ if [ ! -f "$AGENTENV_ROOT/meta.json" ]; then
   agentenv init --from /
 fi
 
-# Run the agent under `supervise`: it auto-snapshots AND serves a control
-# socket, so you can roll back WHILE the agent is running — from another
-# terminal: `docker exec <c> agentenv ctl checkout <node>`. On rollback the
-# agent is killed and relaunched from the restored environment; you never have
-# to exit it. With `docker run -it`, supervise runs the agent on a PTY (Claude
-# Code's interactive TUI works); without a TTY it runs headless.
+# Run under `supervise`: it auto-snapshots AND serves a control socket, so you
+# can roll back WHILE work is in progress — from another terminal:
+# `docker exec <c> agentenv ctl checkout <node>`. On rollback the supervised
+# process is killed and relaunched from the restored environment. With
+# `docker run -it`, supervise runs on a PTY (interactive); without a TTY it
+# runs headless.
 #
-#   no args        → supervise Claude Code (docker run -it ... → interactive)
-#   args           → supervise that command instead (e.g. `claude -p "..."`,
-#                    or `bash -l` if you'd rather launch claude by hand)
+# Default: a login SHELL — you land at a prompt inside the sandbox and start
+# `claude` (or anything) yourself; everything you do is auto-snapshotted. A
+# rollback relaunches the shell from the restored env (re-run claude after).
+#
+#   no args  → supervised interactive shell (start claude yourself)
+#   args     → supervise that command instead (e.g. `claude -p "..."`)
 if [ "$#" -eq 0 ]; then
-  exec agentenv supervise -- claude
+  exec agentenv supervise -- bash -l
 else
   exec agentenv supervise -- "$@"
 fi

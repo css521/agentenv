@@ -37,10 +37,11 @@ docker build -f examples/claude-code/Dockerfile \
 
 ## Use it
 
-`docker run -it` launches Claude Code **inside** the rewindable sandbox under
-`agentenv supervise` — interactive TUI, everything auto-snapshotted, and a
-control socket so you can roll back **while Claude is still running**. Nested
-user namespaces need relaxed seccomp/AppArmor (same as any agentenv rootless run):
+`docker run -it` drops you at a **shell inside** the rewindable sandbox, running
+under `agentenv supervise` — you start `claude` (or anything) yourself,
+everything is auto-snapshotted, and a control socket lets you roll back **while
+work is still in progress**. Nested user namespaces need relaxed seccomp/AppArmor
+(same as any agentenv rootless run):
 
 ```bash
 docker run -it --name rc \
@@ -50,8 +51,12 @@ docker run -it --name rc \
 # idealab / proxy users: also -e ANTHROPIC_BASE_URL=... -e ANTHROPIC_MODEL=...
 ```
 
-Claude Code starts automatically; just use it normally. Every change it makes
-is auto-snapshotted.
+You land at a prompt inside the sandbox. Start Claude Code yourself:
+
+```text
+$ claude --permission-mode acceptEdits     # root → use this (not --dangerously-skip-permissions)
+  ... work normally; every change is auto-snapshotted ...
+```
 
 `ANTHROPIC_*` / `CLAUDE_*` are forwarded into the sandbox automatically — the
 image bakes `AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,...`, so a plain
@@ -67,19 +72,21 @@ image bakes `AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,...`, so a plain
 > e.g. OrbStack ▸ Settings ▸ Network ▸ Proxy (SOCKS5 works there at the network
 > layer), excluding your inference gateway's host so it stays direct.
 
-### Rewind — while Claude is running
+### Rewind — while work is in progress
 
-From **another terminal** (Claude keeps running in the first one):
+From **another terminal** (your shell + Claude keep running in the first one):
 
 ```bash
 docker exec rc agentenv ctl log            # the snapshot DAG
 docker exec rc agentenv ctl checkout <id>  # roll the WHOLE env back to <id>
 ```
 
-On checkout, supervise kills Claude, restores the environment, and relaunches
-Claude from the restored state — you don't exit anything by hand. (This is why
-the image uses `supervise`, not a plain `shell`: the shell would hold the repo
-lock and force you to exit before rolling back.)
+On checkout, supervise kills the supervised shell (and Claude running in it),
+restores the environment, and relaunches the shell from the restored state —
+you don't exit anything by hand; terminal 1 just lands back at a fresh prompt
+in the rolled-back env (re-run `claude` to continue). This is why the image
+uses `supervise`, not a plain interactive `shell`: a bare shell would hold the
+repo lock and force you to exit before you could roll back.
 
 When done:
 
