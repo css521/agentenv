@@ -1,0 +1,18 @@
+# Step 4 smoke-test image — end-to-end rollback through MCP.
+#
+# Mirrors Dockerfile.mcp-smoke but bakes in rollback-smoke.sh as the
+# entrypoint. The agentenv binary needs to be cross-compiled into the build
+# context as `agentenv-linux-arm64` first (Makefile target / manual go build).
+FROM ubuntu:22.04
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends jq ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY agentenv-linux-arm64 /usr/local/bin/agentenv
+RUN chmod +x /usr/local/bin/agentenv
+
+COPY rollback-smoke.sh /usr/local/bin/rollback-smoke
+RUN chmod +x /usr/local/bin/rollback-smoke
+
+ENTRYPOINT ["/usr/local/bin/rollback-smoke"]

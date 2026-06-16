@@ -1,0 +1,41 @@
+{
+  // One-click Linux dev environment for VS Code / Cursor / GitHub Codespaces.
+  // From the editor: "Reopen in Container" — you get a Linux Go toolchain with
+  // libbtrfs-dev pre-installed, seccomp relaxed so agentenv's user-namespace
+  // runner works, and the project source mounted as the workspace.
+  "name": "agentenv-dev",
+  "image": "mcr.microsoft.com/devcontainers/go:1-1.23",
+
+  // The agentenv runner clones into a fresh user namespace; the dev container's
+  // default seccomp profile blocks that. Unconfining it inside the dev container
+  // is fine — the container itself is the boundary.
+  "runArgs": [
+    "--security-opt=seccomp=unconfined",
+    "--security-opt=apparmor=unconfined"
+  ],
+
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+
+  // libbtrfs-dev lets you build with `-tags btrfs` (the optional fast-path
+  // backend that needs cgo); the default static build needs nothing.
+  "postCreateCommand": "apt-get update && apt-get install -y -qq libbtrfs-dev make",
+  // Show the Makefile target list every time the container is attached, so a new
+  // contributor immediately sees what they can do (build / test / verify / demo).
+  "postAttachCommand": "make help",
+
+  "remoteUser": "vscode",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "go.testFlags": ["-race"],
+        "gopls": { "build.buildFlags": ["-tags=btrfs"] }
+      },
+      "extensions": [
+        "golang.go"
+      ]
+    }
+  }
+}

@@ -1,0 +1,76 @@
+# Deployment variant: the agent runs in a rewindable env, with a CONTROL SIDECAR
+# that shares the volume (and therefore the control socket) so an orchestrator can
+# branch / roll back out-of-band. See agent-pod.yaml for the prerequisites and the
+# security-context rationale (unprivileged user namespaces + Unconfined seccomp).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-agent
+  labels: { app: my-agent }
+spec:
+  replicas: 1                      # each replica is an independent rewindable env
+  selector:
+    matchLabels: { app: my-agent }
+  template:
+    metadata:
+      labels: { app: my-agent }
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/agent: unconfined
+        container.apparmor.security.beta.kubernetes.io/control: unconfined
+    spec:
+      securityContext:
+        seccompProfile: { type: Unconfined }   # required for nested user namespaces
+        runAsUser: 0                            # root WITHOUT privileged (best fidelity)
+      containers:
+        # --- the agent: runs UNCHANGED inside the managed, rewindable env ---
+        - name: agent
+          image: <reg>/my-agent-rewindable:latest   # built with Dockerfile.control
+          args: ["<your", "unchanged", "agent", "command>"]
+          env:
+            - { name: AGENTENV_ROOT, value: /var/lib/agentenv }
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: Unconfined }
+            appArmorProfile: { type: Unconfined }   # k8s v1.30+
+          volumeMounts:
+            - { name: agentenv-data, mountPath: /var/lib/agentenv }
+          resources:
+            requests: { cpu: "500m", memory: "512Mi" }
+            limits: { cpu: "2", memory: "2Gi" }
+
+        # --- the controller: decides when to branch / roll back, out-of-band ---
+        # Shares the volume, so it sees the same socket at
+        # /var/lib/agentenv/agentenv.sock and drives it with `agentenv ctl`.
+        # Replace the placeholder loop with your policy (roll back on failed tests,
+        # branch to explore alternatives, periodic checkpoints, etc.).
+        - name: control
+          image: <reg>/my-agent-rewindable:latest   # same image -> has the agentenv binary
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export AGENTENV_ROOT=/var/lib/agentenv
+              echo "control sidecar ready; drive rollback with: agentenv ctl checkout <id>"
+              # --- example policy (uncomment & adapt) ---
+              # while sleep 30; do
+              #   if <your failure signal>; then
+              #     id=$(agentenv ctl log | sed -n '2p' | grep -oE '[0-9a-f]{12}')
+              #     agentenv ctl checkout "$id"
+              #   fi
+              # done
+              sleep infinity
+          env:
+            - { name: AGENTENV_ROOT, value: /var/lib/agentenv }
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: agentenv-data, mountPath: /var/lib/agentenv }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "500m", memory: "256Mi" }
+      volumes:
+        - name: agentenv-data
+          emptyDir: { sizeLimit: 10Gi }   # shared by both containers; swap for a PVC to persist

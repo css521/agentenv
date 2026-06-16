@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: vet
+        run: go vet ./...
+      - name: staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck ./...
+      - name: unit tests
+        run: go test -race ./...
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: build (default, pure Go static)
+        run: GOOS=linux GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o /dev/null ./...
+
+  integration-rootless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: allow unprivileged user namespaces (Ubuntu 24.04 AppArmor)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: rootless end-to-end (userns + copy backend)
+        run: |
+          go build -o /tmp/agentenv .
+          export PATH=/tmp:$PATH AGENTENV_ROOT=/tmp/agentfs
+          mkdir -p /tmp/agentfs
+          arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          agentenv init --tarball "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.4-base-${arch}.tar.gz"
+          agentenv exec -- bash -lc 'echo hi > /root/a.txt'
+          agentenv commit -m a
+          agentenv exec -- bash -lc 'echo bye > /root/b.txt'
+          agentenv commit -m b
+          A=$(agentenv log | grep '"a"' | grep -oE '[0-9a-f]{12}' | head -1)
+          agentenv checkout "$A"
+          if agentenv exec -- bash -lc 'test -f /root/b.txt'; then
+            echo "FAIL: b.txt should be gone after rollback"; exit 1
+          fi
+          echo "ROLLBACK OK"

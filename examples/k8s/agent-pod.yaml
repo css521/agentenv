@@ -1,0 +1,57 @@
+# Deploy an agent with a rewindable whole-environment, in an UNPRIVILEGED pod.
+#
+# Prerequisites (the one hard requirement is unprivileged user namespaces):
+#   * Confirm the node allows them — in any pod on that node:
+#         unshare -Urm true ; echo $?      # must print 0
+#   * The namespace must NOT enforce PodSecurity "restricted" (it forces
+#     RuntimeDefault seccomp, which blocks nested userns). Use "baseline":
+#         kubectl label ns <ns> pod-security.kubernetes.io/enforce=baseline
+#
+# Build the image with Dockerfile.control (wraps your unchanged agent image):
+#   docker build -f Dockerfile.control --build-arg BASE=<your-agent-image> -t <reg>/my-agent-rewindable .
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-agent
+  annotations:
+    # Ubuntu 22.04/24.04 nodes gate unprivileged userns behind AppArmor.
+    # For clusters < v1.30 use this annotation; v1.30+ use securityContext.appArmorProfile below.
+    container.apparmor.security.beta.kubernetes.io/agent: unconfined
+spec:
+  restartPolicy: Never
+  securityContext:
+    # Required: RuntimeDefault seccomp blocks the nested userns clone agentenv needs.
+    seccompProfile:
+      type: Unconfined
+    # runAsUser: 0 (root WITHOUT privileged) gives full fidelity: `init --from /`
+    # can read every file. Non-root (e.g. 1001) also works but skips root-only files.
+    runAsUser: 0
+  containers:
+    - name: agent
+      image: <reg>/my-agent-rewindable:latest   # built with Dockerfile.control
+      args: ["<your", "unchanged", "agent", "command>"]   # = the CMD; agent is unaware of agentenv
+      env:
+        - name: AGENTENV_ROOT
+          value: /var/lib/agentenv
+      securityContext:
+        privileged: false              # NOT privileged
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]                # no host capabilities needed (rootless userns)
+        seccompProfile:
+          type: Unconfined
+        # Kubernetes v1.30+: prefer this over the annotation above.
+        appArmorProfile:
+          type: Unconfined
+      volumeMounts:
+        - name: agentenv-data          # the managed env + snapshot history live here
+          mountPath: /var/lib/agentenv
+      resources:
+        requests: { cpu: "500m", memory: "512Mi" }
+        limits: { cpu: "2", memory: "2Gi" }
+  volumes:
+    # emptyDir = ephemeral (per-pod) history. Swap for a PVC to persist across restarts.
+    - name: agentenv-data
+      emptyDir:
+        sizeLimit: 10Gi   # holds the seeded rootfs copy + snapshot diffs

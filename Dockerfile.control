@@ -1,0 +1,33 @@
+# Wrap ANY agent image so its whole environment becomes rewindable — with zero
+# changes to the agent (it calls no API, uses any language, writes any path).
+#
+# Build from the agentenv repo (this is the build context; no pre-built binary
+# needed — stage 1 compiles the static binary):
+#   docker build -f Dockerfile.control --build-arg BASE=<your-agent-image> -t my-agent-rewindable .
+#
+# Run (args after the image are your UNCHANGED agent command):
+#   docker run --security-opt seccomp=unconfined my-agent-rewindable <agent command...>
+#   # a Kubernetes pod that allows unprivileged user namespaces needs no extra privilege
+#
+# Roll the whole environment back, out-of-band (does not touch the agent's code):
+#   docker exec <container> agentenv ctl checkout <node-id>
+#   docker exec <container> agentenv ctl log        # find a node to roll back to
+#   (the agent is killed and relaunched from the restored environment)
+
+ARG BASE=ubuntu:24.04
+
+# --- stage 1: build the static, dependency-free agentenv binary ---
+FROM golang:1.26 AS build
+ARG GOPROXY
+ENV GOPROXY=${GOPROXY:-https://proxy.golang.org,direct}
+WORKDIR /src
+COPY . .
+RUN CGO_ENABLED=0 go build -o /agentenv .
+
+# --- stage 2: your agent image + agentenv injected around it ---
+FROM ${BASE}
+COPY --from=build /agentenv /usr/local/bin/agentenv
+COPY scripts/agentenv-entrypoint.sh /usr/local/bin/agentenv-entrypoint
+RUN chmod +x /usr/local/bin/agentenv /usr/local/bin/agentenv-entrypoint
+ENV AGENTENV_ROOT=/var/lib/agentenv
+ENTRYPOINT ["/usr/local/bin/agentenv-entrypoint"]

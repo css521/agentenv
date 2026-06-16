@@ -1,0 +1,20 @@
+{
+  // Make gopls treat the project as Linux on any host, so the //go:build linux
+  // files (sandbox, repo, capture, backend, watch, ...) are indexed for real and
+  // editors stop showing fake "undefined: unix.Mount" / "no Go files" warnings
+  // on macOS or Windows.
+  "go.toolsEnvVars": {
+    "GOOS": "linux",
+    "GOARCH": "arm64"
+  },
+  "gopls": {
+    // Also include the btrfs backend so its file (internal/backend/btrfs_backend.go)
+    // and the cgo btrfs wrapper get indexed. The default build still excludes them.
+    "build.buildFlags": ["-tags=btrfs"],
+    "ui.semanticTokens": true
+  },
+  "go.testFlags": ["-race"],
+  // The Linux-only main is paired with main_other.go for non-Linux hosts; both are
+  // valid sources of the `main` package depending on build tags.
+  "go.lintFlags": ["--fast"]
+}

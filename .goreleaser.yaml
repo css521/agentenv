@@ -1,0 +1,41 @@
+version: 2
+
+# The released artifact is the default pure-Go static binary (copy/rootless
+# backend) — the one you drop into a restricted pod. The optional btrfs backend
+# needs cgo + libbtrfs and is built manually with `-tags btrfs`.
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: agentenv
+    main: .
+    binary: agentenv
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - DESIGN.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github
+
+release:
+  draft: true

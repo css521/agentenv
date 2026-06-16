@@ -1,0 +1,33 @@
+# Smoke-test image for the agentenv MCP server.
+#
+# Contains:
+#   - the agentenv binary (cross-compiled linux/arm64)
+#   - Node.js + @anthropic-ai/claude-code  (so a human can interactively drive
+#     the MCP server with `claude` once they've authenticated inside the
+#     container — see verify/docker/run-mcp-smoke.sh for Step A and Step B
+#     usage)
+#   - jq for pretty-printing JSON-RPC frames during the protocol-level test
+#
+# Built for the host arch only (linux/arm64 on Apple Silicon).
+FROM node:22-bookworm-slim
+
+# Minimal extras: jq for the protocol smoke test, ca-certificates so Claude
+# Code can reach api.anthropic.com when run interactively.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends jq ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Claude Code CLI (used only in Step B — pre-installed so the interactive
+# `docker exec` session is one command shorter).
+RUN npm install -g @anthropic-ai/claude-code
+
+# agentenv binary, cross-compiled by the host before `docker build`.
+COPY agentenv-linux-arm64 /usr/local/bin/agentenv
+RUN chmod +x /usr/local/bin/agentenv
+
+# Smoke-test entrypoint script.
+COPY mcp-smoke.sh /usr/local/bin/mcp-smoke
+RUN chmod +x /usr/local/bin/mcp-smoke
+
+# Default to the protocol-level smoke test. Override with `bash` for Step B.
+ENTRYPOINT ["/usr/local/bin/mcp-smoke"]

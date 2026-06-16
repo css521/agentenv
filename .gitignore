@@ -1,0 +1,30 @@
+# Binaries
+/agentenv
+*.exe
+dist/
+/bin/
+# Cross-compiled binaries dropped into verify/docker/ by `make verify-mcp` and
+# `make verify-rollback` so the Dockerfile can COPY them in.
+/verify/docker/agentenv-linux-*
+
+# Local snapshot store / test artifacts
+/agentfs/
+*.img
+*.out
+
+# Go
+*.test
+*.prof
+coverage.txt
+
+# Editor / OS
+.DS_Store
+.idea/
+# Allow committed shared settings, ignore per-user editor state.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Local-only working docs (not for public repo)
+/REVIEW_ISSUES.md
+/.claude/

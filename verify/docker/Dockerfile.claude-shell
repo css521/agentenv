@@ -1,0 +1,29 @@
+# Interactive image for Step B: a real Claude Code session driving agentenv
+# over MCP.
+#
+# Build: docker build --platform=linux/arm64 -f Dockerfile.claude-shell -t agentenv-claude-shell .
+# Run:   see verify/docker/run-claude-shell.sh
+#
+# What it sets up at container start (via entrypoint):
+#   1. seeds /agentfs with a tiny rootfs (/seed/greeting.txt)
+#   2. `agentenv init --from /seed` → root node
+#   3. `agentenv daemon` in background → /agentfs/agentenv.sock
+#   4. registers the `agentenv` MCP server in ~/.claude.json (via `claude mcp add`)
+#   5. drops the user into an interactive shell with `claude` on PATH
+FROM node:22-bookworm-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends jq ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g @anthropic-ai/claude-code
+
+COPY agentenv-linux-arm64 /usr/local/bin/agentenv
+RUN chmod +x /usr/local/bin/agentenv
+
+COPY claude-shell-entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+
+WORKDIR /workspace
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+CMD ["bash", "-i"]
