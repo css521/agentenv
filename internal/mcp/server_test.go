@@ -40,7 +40,7 @@ type fakeDaemon struct {
 	t      *testing.T
 	ln     net.Listener
 	mu     sync.Mutex
-	got    []protocol.Request  // every request the daemon received, in order
+	got    []protocol.Request // every request the daemon received, in order
 	replyF func(req protocol.Request) protocol.Response
 }
 
@@ -147,12 +147,12 @@ func TestToolsList(t *testing.T) {
 		t.Fatalf("ListTools: %v", err)
 	}
 	want := map[string]bool{
-		"agentenv__head":      false,
-		"agentenv__log":       false,
-		"agentenv__branches":  false,
-		"agentenv__show":      false,
-		"agentenv__diff":      false,
-		"agentenv__checkout":  false,
+		"agentenv__head":     false,
+		"agentenv__log":      false,
+		"agentenv__branches": false,
+		"agentenv__show":     false,
+		"agentenv__diff":     false,
+		"agentenv__checkout": false,
 	}
 	for _, tl := range res.Tools {
 		if _, ok := want[tl.Name]; ok {

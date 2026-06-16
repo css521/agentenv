@@ -132,7 +132,6 @@ func ctlStreamExec(sock string, req map[string]any) error {
 	}
 }
 
-
 func ctlPrint(op string, r *protocol.Response) error {
 	if !r.OK {
 		return fmt.Errorf("%s", r.Error)

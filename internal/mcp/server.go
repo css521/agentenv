@@ -204,4 +204,3 @@ func toolError(msg string) *mcp.CallToolResult {
 		Content: []mcp.Content{&mcp.TextContent{Text: errPrefix + msg}},
 	}
 }
-
