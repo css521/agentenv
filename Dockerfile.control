@@ -13,6 +13,28 @@
 #   docker exec <container> agentenv ctl checkout <node-id>
 #   docker exec <container> agentenv ctl log        # find a node to roll back to
 #   (the agent is killed and relaunched from the restored environment)
+#
+# ---------------------------------------------------------------------------
+# SEED_AT_BUILD: bake the managed rootfs INTO the image at build time.
+#
+#   docker build -f Dockerfile.control --build-arg BASE=<img> \
+#     --build-arg SEED_AT_BUILD=1 -t my-agent-rewindable .
+#
+# Without it (default), the entrypoint seeds `init --from /` on FIRST run —
+# correct, but on a multi-GB image that's a slow copy at every fresh start.
+# With it, the seed happens once during `docker build` (cached in a layer),
+# so container start is instant: the entrypoint sees an existing meta.json
+# and goes straight to `supervise`.
+#
+# Trade-offs:
+#   + instant start; the slow copy is a cached build layer, not a runtime tax
+#   + SAFER re: Kubernetes secrets — they're mounted at RUN time, so they
+#     simply don't exist during build and can't be captured into snapshots
+#     (the runtime path needs an explicit secret-stash dance; this doesn't)
+#   - ~2× image size: the image keeps both its original / and the seeded copy
+#     under AGENTENV_ROOT (overlay layers don't dedup like reflink/hardlink)
+#   - captures the image's own files as-is; don't bake secrets into the BASE
+# ---------------------------------------------------------------------------
 
 ARG BASE=ubuntu:24.04
 
@@ -30,4 +52,15 @@ COPY --from=build /agentenv /usr/local/bin/agentenv
 COPY scripts/agentenv-entrypoint.sh /usr/local/bin/agentenv-entrypoint
 RUN chmod +x /usr/local/bin/agentenv /usr/local/bin/agentenv-entrypoint
 ENV AGENTENV_ROOT=/var/lib/agentenv
+
+# Optional build-time seed (see header). The init runs as a pure file copy +
+# snapshot freeze — no namespaces/privilege needed, so it works in a plain
+# `docker build`. When set, the entrypoint's `[ ! -f meta.json ]` guard is
+# already satisfied, so runtime skips straight to supervise.
+ARG SEED_AT_BUILD=
+RUN if [ -n "$SEED_AT_BUILD" ]; then \
+      echo "agentenv: baking managed rootfs at build time (init --from /)"; \
+      agentenv init --from /; \
+    fi
+
 ENTRYPOINT ["/usr/local/bin/agentenv-entrypoint"]

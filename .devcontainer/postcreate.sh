@@ -14,8 +14,11 @@ set -e
 if [ "$AGENTENV_CN_MIRROR" = "1" ]; then
   echo "[postcreate] AGENTENV_CN_MIRROR=1 → switching apt sources to mirrors.aliyun.com"
   # `*.sources` is Debian's modern deb822 format (trixie/sid); older releases
-  # still use the single-line sources.list. Rewrite whichever is present.
-  sudo sed -ri 's|http(s)?://(deb|security)\.debian\.org|http\1://mirrors.aliyun.com|g' \
+  # still use the single-line sources.list. Rewrite whichever is present. Only
+  # the host needs swapping (security lives at deb.debian.org/debian-security,
+  # not a separate host); use '#' as the sed delimiter so it doesn't collide
+  # with any '|' in the expression.
+  sudo sed -ri 's#deb\.debian\.org#mirrors.aliyun.com#g' \
     /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
 fi
 

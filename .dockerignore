@@ -1,0 +1,14 @@
+# Keep the Docker build context small + reproducible. Stage 1 only needs the Go
+# sources + go.mod/go.sum to compile the agentenv binary; everything below is
+# either large, irrelevant to the build, or a local artifact.
+.git
+bin/
+dist/
+docs/demo.gif
+docs/demo.cast
+verify/docker/agentenv-linux-*
+*.img
+*.out
+.devcontainer/.features.temp.dockerfile
+.claude/
+REVIEW_ISSUES.md
