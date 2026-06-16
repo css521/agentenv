@@ -14,7 +14,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"sync"
@@ -48,11 +47,10 @@ func Serve(ctx context.Context, r *repo.Repo, c *repo.Capturer, sockPath string)
 		ln.Close()
 		return err
 	}
-	// Log the uid in big letters so the cross-uid trap (daemon=root,
-	// agent=non-root, socket=0600) shows up at the first scroll of the log
-	// instead of after 20 minutes of debugging "permission denied". Pairs
-	// with the diagnostic in daemonclient.diagnoseConnect.
-	fmt.Fprintf(os.Stderr, "agentenv daemon listening on %s  (uid=%d, mode=0600)\n", sockPath, os.Getuid())
+	// The listening/uid banner is left to the caller: `daemon` and headless
+	// `supervise` print it (useful operational logging + the cross-uid trap
+	// hint), while interactive `supervise` stays silent so it doesn't pollute
+	// the agent's terminal.
 	go func() {
 		<-ctx.Done()
 		ln.Close()

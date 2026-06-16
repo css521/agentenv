@@ -61,19 +61,20 @@ func cmdSupervise(r *repo.Repo, args []string) error {
 	go api.Serve(ctx, r, cap, sock)
 	defer os.Remove(sock)
 
-	fmt.Printf("agentenv supervise: backend=%s control-socket=%s self-rollback=%v\n", r.Backend().Name, sock, selfRollback)
-	fmt.Printf("running agent inside the env: %s\n", strings.Join(agentArgs, " "))
-
 	// Two modes, chosen by whether stdin is a terminal:
 	//   - interactive (TTY): run the agent on a PTY in the foreground so a REPL
-	//     like Claude Code works.
-	//   - headless (no TTY): background the agent, tail its log — for
-	//     autonomous/long-running agents.
+	//     like Claude Code works. Stay SILENT — no banner, no snapshot notices —
+	//     so the agent's terminal isn't polluted. (Inspect from another terminal
+	//     with `agentenv log` / `agentenv ctl log`.)
+	//   - headless (no TTY): print a startup banner + tail the agent's log — for
+	//     autonomous/long-running agents where this is useful operational output.
 	// In self-rollback mode a checkout doesn't kill the agent, so the run loops'
 	// "killed by rollback → relaunch" branch simply never fires.
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		return superviseInteractive(ctx, r, agentArgs, selfRollback)
 	}
+	fmt.Printf("agentenv supervise: backend=%s control-socket=%s self-rollback=%v (uid=%d)\n", r.Backend().Name, sock, selfRollback, os.Getuid())
+	fmt.Printf("running agent inside the env: %s\n", strings.Join(agentArgs, " "))
 	cap.SetOnSnapshot(printSnapshot)
 	return superviseHeadless(ctx, r, agentArgs, selfRollback)
 }
@@ -190,7 +191,9 @@ func cmdDaemon(r *repo.Repo, args []string) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	fmt.Printf("agentenv daemon: backend=%s listening on %s\n", r.Backend().Name, sock)
+	// uid in the banner surfaces the cross-uid trap (daemon=root, agent=non-root,
+	// socket=0600) right away — pairs with daemonclient.diagnoseConnect.
+	fmt.Printf("agentenv daemon: backend=%s listening on %s (uid=%d, mode=0600)\n", r.Backend().Name, sock, os.Getuid())
 	defer os.Remove(sock)
 	return api.Serve(ctx, r, cap, sock)
 }
