@@ -55,6 +55,7 @@ type Repo struct {
 
 	mu    sync.Mutex
 	procs map[int]*Proc // background processes started via Spawn
+	fg    *exec.Cmd     // foreground interactive agent (supervise PTY mode); killAll kills it too
 
 	opMu          sync.Mutex // serializes DAG/work mutations (Commit/Checkout/auto-capture/retention)
 	cap           *Capturer  // background auto-snapshot loop (nil unless started)
@@ -399,6 +400,26 @@ func (r *Repo) Shell(args []string) (int, error) {
 	return r.be.Runner.Shell(r.workRoot(), args, sandboxEnv())
 }
 
+// RunInteractive runs an interactive agent on a PTY (supervise's TTY mode) and
+// registers it as the foreground process so a concurrent Checkout() can kill
+// it. Returns the agent's exit code. The supervisor calls this in a loop:
+// after a rollback kills the agent, CheckoutCount increases and the supervisor
+// re-invokes RunInteractive to relaunch from the restored environment.
+func (r *Repo) RunInteractive(args []string) (int, error) {
+	if err := r.ensureWorking(); err != nil {
+		return -1, err
+	}
+	code, err := r.be.Runner.ShellHook(r.workRoot(), args, sandboxEnv(), func(cmd *exec.Cmd) {
+		r.mu.Lock()
+		r.fg = cmd
+		r.mu.Unlock()
+	})
+	r.mu.Lock()
+	r.fg = nil
+	r.mu.Unlock()
+	return code, err
+}
+
 // Spawn starts a background process in the current working volume, tracks it, and
 // returns its handle. Output is written to logs/<id>.log. A reaper goroutine
 // removes it from the table when it exits.
@@ -482,7 +503,15 @@ func (r *Repo) killAll() {
 	for _, p := range r.procs {
 		cmds = append(cmds, p.cmd)
 	}
+	// The foreground interactive agent (supervise PTY mode) isn't in the procs
+	// table — kill it explicitly so a rollback can swap the rootfs out from
+	// under it. The supervise loop sees it die, sees checkoutCount bumped, and
+	// relaunches it from the restored env.
+	fg := r.fg
 	r.mu.Unlock()
+	if fg != nil && fg.Process != nil {
+		_ = fg.Process.Kill()
+	}
 	for _, c := range cmds {
 		_ = c.Process.Kill()
 	}

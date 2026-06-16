@@ -92,6 +92,10 @@ func (rootlessRunner) Shell(rootfs string, args, env []string) (int, error) {
 	return sandbox.RunPTY(rootfs, args, env, true)
 }
 
+func (rootlessRunner) ShellHook(rootfs string, args, env []string, onStart func(*exec.Cmd)) (int, error) {
+	return sandbox.RunPTYHook(rootfs, args, env, true, onStart)
+}
+
 // copySnap snapshots a rootfs by copying directories (no CoW). Snapshots share
 // unchanged files with their parent node via hardlinks, so a snapshot costs
 // O(changed) data; a restore is a full copy (independent writable tree).

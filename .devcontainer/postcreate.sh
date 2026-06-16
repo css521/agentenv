@@ -24,3 +24,19 @@ fi
 
 sudo apt-get update
 sudo apt-get install -y -qq libbtrfs-dev make
+
+# Build the agentenv binary onto PATH so `agentenv` and the rewindable-claude
+# launcher just work in the dev container / Codespace without a manual build.
+echo "[postcreate] building agentenv → ~/go/bin/agentenv"
+mkdir -p "$HOME/go/bin"
+CGO_ENABLED=0 go build -o "$HOME/go/bin/agentenv" .
+
+# Install Claude Code if npm is present and it isn't already there, so the
+# rewindable-claude launcher has something to wrap. (Skipped if npm is missing
+# — the launcher still works for any other command.)
+if command -v npm >/dev/null 2>&1 && ! command -v claude >/dev/null 2>&1; then
+  echo "[postcreate] installing @anthropic-ai/claude-code"
+  [ "$AGENTENV_CN_MIRROR" = "1" ] && npm config set registry https://registry.npmmirror.com || true
+  sudo npm install -g @anthropic-ai/claude-code || \
+    echo "[postcreate] claude-code install failed (install it yourself: npm i -g @anthropic-ai/claude-code)"
+fi

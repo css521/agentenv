@@ -71,6 +71,10 @@ func (privilegedRunner) Shell(rootfs string, args, env []string) (int, error) {
 	return sandbox.RunPTY(rootfs, args, env, false)
 }
 
+func (privilegedRunner) ShellHook(rootfs string, args, env []string, onStart func(*exec.Cmd)) (int, error) {
+	return sandbox.RunPTYHook(rootfs, args, env, false, onStart)
+}
+
 // btrfsSnap snapshots via btrfs subvolumes (copy-on-write, O(1)).
 type btrfsSnap struct {
 	nodes string

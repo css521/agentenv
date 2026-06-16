@@ -31,6 +31,9 @@ type Runner interface {
 	// Shell runs an interactive command in rootfs on a PTY wired to the caller's
 	// terminal, returning its exit code.
 	Shell(rootfs string, args, env []string) (int, error)
+	// ShellHook is Shell plus an onStart callback invoked with the child process
+	// right after it starts, so a supervisor can register it for kill-on-rollback.
+	ShellHook(rootfs string, args, env []string, onStart func(*exec.Cmd)) (int, error)
 }
 
 // Snapshotter manages the writable working rootfs and immutable node snapshots.

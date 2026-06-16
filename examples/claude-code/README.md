@@ -37,10 +37,10 @@ docker build -f examples/claude-code/Dockerfile \
 
 ## Use it
 
-`docker run -it` drops you straight into a shell **inside** the rewindable
-sandbox — you start `claude` yourself, and everything it does is auto-snapshotted.
-Nested user namespaces need relaxed seccomp/AppArmor (same as any agentenv
-rootless run):
+`docker run -it` launches Claude Code **inside** the rewindable sandbox under
+`agentenv supervise` — interactive TUI, everything auto-snapshotted, and a
+control socket so you can roll back **while Claude is still running**. Nested
+user namespaces need relaxed seccomp/AppArmor (same as any agentenv rootless run):
 
 ```bash
 docker run -it --name rc \
@@ -50,33 +50,36 @@ docker run -it --name rc \
 # idealab / proxy users: also -e ANTHROPIC_BASE_URL=... -e ANTHROPIC_MODEL=...
 ```
 
-You land in a shell inside the sandbox. Just run Claude Code:
-
-```text
-$ claude            # start it yourself; do your work normally
-  ... claude edits files, runs commands — all auto-snapshotted ...
-$ exit              # leave the shell; the final state is captured too
-```
+Claude Code starts automatically; just use it normally. Every change it makes
+is auto-snapshotted.
 
 `ANTHROPIC_*` / `CLAUDE_*` are forwarded into the sandbox automatically — the
 image bakes `AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,...`, so a plain
 `-e ANTHROPIC_API_KEY=...` reaches `claude` inside.
 
 > Running as root, Claude refuses `--dangerously-skip-permissions`. Use the
-> normal permission prompts, or `claude --permission-mode acceptEdits` for a
-> smoother flow.
+> normal permission prompts, or launch with
+> `docker run -it ... rewindable-claude claude --permission-mode acceptEdits`.
 
-### Rewind
+> If Claude shows "Failed to connect to api.anthropic.com" behind a regional
+> block: its interactive startup pings api.anthropic.com directly (headless
+> `-p` doesn't). Route the container through a proxy with a permitted egress —
+> e.g. OrbStack ▸ Settings ▸ Network ▸ Proxy (SOCKS5 works there at the network
+> layer), excluding your inference gateway's host so it stays direct.
 
-The interactive shell holds the repo lock, so rewind **between** sessions: exit
-the shell, then drive agentenv over `docker exec` (the lock is free), then
-re-enter.
+### Rewind — while Claude is running
+
+From **another terminal** (Claude keeps running in the first one):
 
 ```bash
-docker exec rc agentenv log            # the snapshot DAG
-docker exec rc agentenv checkout <id>  # roll the WHOLE env back to <id>
-docker exec -it rc agentenv shell      # re-enter from the restored state, run claude again
+docker exec rc agentenv ctl log            # the snapshot DAG
+docker exec rc agentenv ctl checkout <id>  # roll the WHOLE env back to <id>
 ```
+
+On checkout, supervise kills Claude, restores the environment, and relaunches
+Claude from the restored state — you don't exit anything by hand. (This is why
+the image uses `supervise`, not a plain `shell`: the shell would hold the repo
+lock and force you to exit before rolling back.)
 
 When done:
 
@@ -101,13 +104,15 @@ docker run --rm \
 - `Dockerfile` bakes `agentenv init --from /` at build time → the image ships a
   ready managed rootfs (`/var/lib/agentenv`). See the top-level `Dockerfile.control`
   for the same `SEED_AT_BUILD` mechanic applied to any agent image.
-- `entrypoint.sh` runs `agentenv shell` (no args) or `agentenv shell -- <cmd>`
-  (args) — an interactive PTY inside the sandbox with auto-capture running. The
-  env allow-list forwards `AGENTENV_FORWARD`-named vars (baked to cover
-  `ANTHROPIC_*`/`CLAUDE_*`) so `claude` sees your key.
-- Why `agentenv shell` and not `agentenv supervise`? `supervise` backgrounds its
-  agent with output to a log file (no TTY/stdin) — right for headless agents,
-  wrong for an interactive REPL like Claude Code.
+- `entrypoint.sh` runs `agentenv supervise -- claude` (or your command). supervise
+  auto-snapshots AND serves a control socket; with a TTY (`docker run -it`) it
+  runs the agent on a PTY so Claude Code's interactive TUI works, and on rollback
+  it kills + relaunches the agent from the restored env. The env allow-list
+  forwards `AGENTENV_FORWARD`-named vars (baked to cover `ANTHROPIC_*`/`CLAUDE_*`)
+  so `claude` sees your key.
+- `AGENTENV_IGNORE=root/.claude,root/.cache,root/.npm` keeps Claude Code's own
+  state churn (its atomic `~/.claude.json.tmp`/`.lock` writes) out of the
+  snapshot history, so the DAG shows only changes to your project.
 
 ## Caveats
 

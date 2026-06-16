@@ -26,6 +26,15 @@ import (
 // of brittle ioctl wrangling. creack/pty + golang.org/x/term shrink it to ~30
 // well-tested lines (pure-Go, no cgo, no extra runtime dependencies).
 func RunPTY(rootfs string, args, env []string, rootless bool) (int, error) {
+	return RunPTYHook(rootfs, args, env, rootless, nil)
+}
+
+// RunPTYHook is RunPTY plus an onStart callback invoked with the child process
+// handle right after it starts (PTY path only). A supervisor uses it to
+// register the interactive agent so a rollback (checkout) can kill it — when
+// the process dies, this call returns and the supervisor restarts it from the
+// restored environment.
+func RunPTYHook(rootfs string, args, env []string, rootless bool, onStart func(*exec.Cmd)) (int, error) {
 	if len(args) == 0 {
 		args = []string{"bash", "-l"}
 	}
@@ -47,6 +56,9 @@ func RunPTY(rootfs string, args, env []string, rootless bool) (int, error) {
 		return -1, err
 	}
 	defer ptmx.Close()
+	if onStart != nil {
+		onStart(cmd)
+	}
 
 	// Put the caller's terminal into raw mode; restore on exit.
 	if old, err := term.MakeRaw(int(os.Stdin.Fd())); err == nil {

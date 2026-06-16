@@ -20,13 +20,18 @@ if [ ! -f "$AGENTENV_ROOT/meta.json" ]; then
   agentenv init --from /
 fi
 
-# No args → interactive shell inside the sandbox (you run `claude` from here).
-# Args → run them inside the sandbox instead (e.g. a one-shot command), still
-# on a PTY with auto-capture. Either way it's `agentenv shell`, which holds the
-# repo lock + runs the capturer; rewind between sessions with `agentenv
-# checkout` (the lock is free once you exit).
+# Run the agent under `supervise`: it auto-snapshots AND serves a control
+# socket, so you can roll back WHILE the agent is running — from another
+# terminal: `docker exec <c> agentenv ctl checkout <node>`. On rollback the
+# agent is killed and relaunched from the restored environment; you never have
+# to exit it. With `docker run -it`, supervise runs the agent on a PTY (Claude
+# Code's interactive TUI works); without a TTY it runs headless.
+#
+#   no args        → supervise Claude Code (docker run -it ... → interactive)
+#   args           → supervise that command instead (e.g. `claude -p "..."`,
+#                    or `bash -l` if you'd rather launch claude by hand)
 if [ "$#" -eq 0 ]; then
-  exec agentenv shell
+  exec agentenv supervise -- claude
 else
-  exec agentenv shell -- "$@"
+  exec agentenv supervise -- "$@"
 fi

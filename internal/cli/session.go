@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/term"
+
 	"github.com/css521/agentenv/internal/api"
 	"github.com/css521/agentenv/internal/repo"
 )
@@ -29,7 +31,6 @@ func cmdSupervise(r *repo.Repo, args []string) error {
 	}
 	cap := r.StartCapturer()
 	defer cap.Stop()
-	cap.SetOnSnapshot(printSnapshot)
 
 	sock := flagValue(args, "--socket")
 	if sock == "" {
@@ -46,6 +47,46 @@ func cmdSupervise(r *repo.Repo, args []string) error {
 	fmt.Printf("agentenv supervise: backend=%s control-socket=%s\n", r.Backend().Name, sock)
 	fmt.Printf("running agent inside the env: %s\n", strings.Join(agentArgs, " "))
 
+	// Two modes, chosen by whether stdin is a terminal:
+	//   - interactive (TTY): run the agent on a PTY in the foreground so a REPL
+	//     like Claude Code works. Rollback (via the socket, from another
+	//     terminal) kills the agent and we relaunch it from the restored env.
+	//   - headless (no TTY): background the agent, tail its log. The original
+	//     behavior, right for autonomous/long-running agents.
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		return superviseInteractive(ctx, r, agentArgs)
+	}
+	cap.SetOnSnapshot(printSnapshot)
+	return superviseHeadless(ctx, r, agentArgs)
+}
+
+// superviseInteractive runs the agent on the controlling terminal, relaunching
+// it after each rollback. Snapshot notices are NOT printed (they'd corrupt the
+// agent's TUI — inspect history from another terminal with `agentenv ctl log`).
+func superviseInteractive(ctx context.Context, r *repo.Repo, agentArgs []string) error {
+	for {
+		if ctx.Err() != nil {
+			return nil
+		}
+		before := r.CheckoutCount()
+		_, err := r.RunInteractive(agentArgs)
+		if ctx.Err() != nil {
+			return nil
+		}
+		if r.CheckoutCount() > before {
+			fmt.Println("\nagentenv supervise: rolled back — relaunching agent from the restored env")
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Println("\nagentenv supervise: agent exited on its own; stopping")
+		return nil
+	}
+}
+
+// superviseHeadless backgrounds the agent and tails its log (autonomous agents).
+func superviseHeadless(ctx context.Context, r *repo.Repo, agentArgs []string) error {
 	for {
 		if ctx.Err() != nil {
 			return nil

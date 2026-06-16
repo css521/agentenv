@@ -7,9 +7,15 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **Interactive `supervise`**: when stdin is a TTY, `agentenv supervise -- <agent>`
+  now runs the agent on a PTY (so an interactive REPL like Claude Code works)
+  while still serving the control socket. A rollback issued from another
+  terminal (`agentenv ctl checkout <id>`) kills the agent and relaunches it
+  from the restored environment — you never have to exit it. Without a TTY it
+  keeps the previous headless (backgrounded + log-tail) behavior, so the same
+  command covers both interactive and long-running autonomous agents.
 - `agentenv shell -- <cmd>` runs an arbitrary program inside the sandbox on a
-  PTY (defaults to a login shell). Lets a wrapper image drop you straight into,
-  say, an interactive Claude Code session whose whole environment is versioned.
+  PTY (defaults to a login shell).
 - `AGENTENV_FORWARD=NAME,NAME,PREFIX_*` forwards named env vars (trailing `*`
   wildcard) into the sandbox by value-at-call-time — complementing the existing
   `AGENTENV_PASS_<VAR>=val` form. A wrapper image can bake
