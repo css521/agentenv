@@ -15,24 +15,48 @@ import (
 	"github.com/css521/agentenv/internal/sandbox"
 )
 
-// alwaysIgnore lists paths that must NEVER be snapshotted regardless of user
-// config: runtime mount points the sandbox remounts fresh, and agentenv's own
-// pivot_root scratch dir. Letting a user's AGENTENV_IGNORE accidentally drop
-// these would reintroduce churn (e.g. ".pivot_old" snapshots) or try to
-// snapshot /proc. So they're forced on, always.
+// Ignore patterns come in two flavors, distinguished by whether they contain a
+// "/":
+//
+//   - ANCHORED (contains "/"): matched against the rootfs-relative path from
+//     the root, e.g. "var/lib/apt/lists". Matches the path itself, anything
+//     under it, and ".<ext>" siblings (so "x.json" covers "x.json.tmp").
+//   - SEGMENT/GLOB (no "/"): matched against EVERY path segment with
+//     filepath.Match, e.g. ".claude" ignores any directory named .claude at
+//     any depth (~/.claude AND a project's ./.claude); "*.tmp.*" ignores
+//     atomic-write temp files anywhere. This is what makes the defaults below
+//     "just work" without anyone listing exact paths via env.
+//
+// alwaysIgnore: never snapshot, regardless of config — runtime mount points the
+// sandbox remounts fresh, and agentenv's own pivot_root scratch dir.
 var alwaysIgnore = []string{"proc", "sys", "dev", ".pivot_old"}
 
-// baseIgnore lists ephemeral CONTENT dirs ignored by default (the empty dir is
-// still kept). AGENTENV_IGNORE EXTENDS this list — it does not replace it — so
-// setting it can never silently re-enable snapshotting of apt caches or /tmp.
-var baseIgnore = []string{"tmp", "var/tmp", "var/cache"}
+// baseIgnore: sensible built-in defaults so agents' bookkeeping churn doesn't
+// bury the snapshots that matter. AGENTENV_IGNORE EXTENDS this (never replaces).
+// Tuned from real Claude Code sessions, but all are generically ephemeral:
+//   - ephemeral dirs: tmp, var/tmp, var/cache, var/lib/apt/lists
+//   - per-user caches/state: .cache, .npm, .local (any depth)
+//   - agent state: .claude (Claude Code's settings/history; rewritten constantly)
+//   - atomic-write + editor temp files: *.tmp.*, *.swp, *~ (any depth)
+var baseIgnore = []string{
+	"tmp", "var/tmp", "var/cache", "var/lib/apt/lists",
+	".cache", ".npm", ".local", ".claude",
+	"*.tmp.*", "*.swp", "*~",
+}
 
 func ignoreList() []string {
 	out := append([]string{}, alwaysIgnore...)
 	out = append(out, baseIgnore...)
 	if v := os.Getenv("AGENTENV_IGNORE"); v != "" {
 		for _, p := range strings.Split(v, ",") {
-			if p = strings.Trim(strings.TrimSpace(p), "/"); p != "" {
+			// '/'-containing patterns are anchored; trim only outer slashes.
+			// Segment/glob patterns are kept verbatim.
+			if strings.Contains(p, "/") {
+				p = strings.Trim(strings.TrimSpace(p), "/")
+			} else {
+				p = strings.TrimSpace(p)
+			}
+			if p != "" {
 				out = append(out, p)
 			}
 		}
@@ -112,6 +136,9 @@ func (s *copySnap) WorkRoot() string { return s.work }
 // Ignored reports whether a rootfs-relative path is under an ignored prefix.
 func (s *copySnap) Ignored(rel string) bool { return s.ignored(rel) }
 
+// IgnorePatterns returns the effective ignore patterns (for display).
+func (s *copySnap) IgnorePatterns() []string { return s.ignore }
+
 // workspacesDir is the parent of all transient parallel rootfs trees. Workspaces
 // live OUTSIDE work/ and nodes/ so they never get caught by status scans, GC, or
 // the change watcher (only work/current is watched).
@@ -155,16 +182,27 @@ func (s *copySnap) FreezeFrom(workspacePath, nodeID, parentID string) error {
 func (s *copySnap) DeleteWorkspace(path string) error { return os.RemoveAll(path) }
 
 func (s *copySnap) ignored(rel string) bool {
+	var segs []string // lazily split for segment/glob patterns
 	for _, p := range s.ignore {
-		// rel == p          : the path itself
-		// HasPrefix(rel,p+"/"): anything under it (it's a dir prefix)
-		// HasPrefix(rel,p+"."): sibling files this entry "owns" by extension —
-		//   crucial for agents that write atomic temp/lock files next to a
-		//   config, e.g. ignoring "root/.claude" also covers
-		//   "root/.claude.json", "root/.claude.json.lock", and
-		//   "root/.claude.json.tmp.8.0ee0fa83" without listing each.
-		if rel == p || strings.HasPrefix(rel, p+"/") || strings.HasPrefix(rel, p+".") {
-			return true
+		if strings.Contains(p, "/") {
+			// Anchored: rel itself, anything under it, or a ".<ext>" sibling
+			// (so "a/b.json" also covers "a/b.json.tmp"/".lock").
+			if rel == p || strings.HasPrefix(rel, p+"/") || strings.HasPrefix(rel, p+".") {
+				return true
+			}
+			continue
+		}
+		// Segment/glob: match any path component (basename at any depth).
+		if segs == nil {
+			segs = strings.Split(rel, "/")
+		}
+		for _, seg := range segs {
+			if seg == p {
+				return true
+			}
+			if ok, _ := filepath.Match(p, seg); ok {
+				return true
+			}
 		}
 	}
 	return false

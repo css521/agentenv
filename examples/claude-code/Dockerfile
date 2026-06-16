@@ -68,13 +68,10 @@ ENV AGENTENV_ROOT=/var/lib/agentenv
 # runtime export.
 ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,HTTP_PROXY,HTTPS_PROXY,NO_PROXY
 
-# Don't snapshot Claude Code's own state churn. Claude constantly rewrites
-# ~/.claude/, ~/.claude.json and atomic .tmp/.lock siblings — without this every
-# config write produces a noisy "auto: root/.claude..." snapshot, burying the
-# snapshots that matter (files Claude changes in your project). AGENTENV_IGNORE
-# EXTENDS agentenv's built-in ignores (proc/sys/dev/.pivot_old/tmp/var/cache),
-# and "root/.claude" also covers root/.claude.json + its .lock/.tmp siblings.
-ENV AGENTENV_IGNORE=root/.claude,root/.cache,root/.npm
+# No AGENTENV_IGNORE needed: agentenv's built-in defaults already ignore Claude
+# Code's state churn (.claude at any depth), atomic temp files (*.tmp.*), and
+# caches (.cache/.npm/.local, apt lists) — so the snapshot DAG shows only the
+# changes Claude makes to your project. Set AGENTENV_IGNORE only to add more.
 
 # Bake the managed rootfs at build time: the slow `init --from /` copy becomes
 # a cached image layer instead of a per-start tax. The entrypoint then sees an

@@ -156,6 +156,18 @@ func (c *Capturer) forward(w *watch.Watcher) {
 // the watcher.
 func (c *Capturer) snapshotLocked(label string) {
 	changed := c.drainLocked()
+	// When the inotify watcher is active, an empty changed-set means the only
+	// things that moved were ignored paths (their churn can still bump a parent
+	// dir's mtime and trip the Token backstop). Don't create an empty "auto"
+	// node for that — resync the baseline so we don't re-trigger every tick and
+	// bail. (With no watcher we can't enumerate changes, so we must trust the
+	// Token signal and snapshot anyway — that's the fallback path.)
+	if label == "" && c.watcher != nil && len(changed) == 0 {
+		if tok, err := c.r.token(); err == nil {
+			c.lastSnapToken = tok
+		}
+		return
+	}
 	if label == "" {
 		if c.pendingLabel != "" {
 			label = c.pendingLabel

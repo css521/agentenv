@@ -114,7 +114,8 @@ func (s *btrfsSnap) Freeze(nodeID, _ string) error {
 func (s *btrfsSnap) DeleteNode(nodeID string) error { return btrfs.Delete(s.NodePath(nodeID)) }
 
 // Ignored: the btrfs backend snapshots the whole subvolume, so nothing is ignored.
-func (s *btrfsSnap) Ignored(string) bool { return false }
+func (s *btrfsSnap) Ignored(string) bool      { return false }
+func (s *btrfsSnap) IgnorePatterns() []string { return nil }
 
 // workspacesDir is the parent of all transient parallel writable subvolumes.
 func (s *btrfsSnap) workspacesDir() string { return filepath.Join(s.nodes, "..", "workspaces") }

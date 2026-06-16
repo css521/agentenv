@@ -63,6 +63,9 @@ type Snapshotter interface {
 	// Ignored reports whether a rootfs-relative path is excluded from snapshots
 	// (so the change watcher skips it too).
 	Ignored(rel string) bool
+	// IgnorePatterns returns the effective ignore patterns (for display, e.g.
+	// `agentenv status`). May be nil (e.g. the btrfs backend ignores nothing).
+	IgnorePatterns() []string
 
 	// NewWorkspace creates a fresh writable rootfs seeded from fromNodeID and
 	// returns its absolute path. Unlike WorkRoot, this is an ADDITIONAL writable

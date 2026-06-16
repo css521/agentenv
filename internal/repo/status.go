@@ -41,15 +41,9 @@ func (r *Repo) Status() Status {
 	procs := len(r.procs)
 	r.mu.Unlock()
 
-	// Surface effective ignore prefixes by probing the well-known defaults — the
-	// btrfs backend returns false for all, the copy backend returns true for the
-	// configured set. Cheap and informative without changing the interface.
-	var ign []string
-	for _, p := range []string{"tmp", "var/tmp", "var/cache", "proc", "sys", "dev", ".pivot_old"} {
-		if r.be.Snapshotter.Ignored(p) {
-			ign = append(ign, p)
-		}
-	}
+	// The effective ignore patterns straight from the backend (copy returns its
+	// configured set; btrfs returns nil).
+	ign := r.be.Snapshotter.IgnorePatterns()
 
 	return Status{
 		Backend:    r.be.Name,
