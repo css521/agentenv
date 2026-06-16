@@ -10,9 +10,43 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/css521/agentenv/internal/repo"
 )
+
+// ctlRoutable reports whether a mutating command has an out-of-band (ctl)
+// equivalent it can be transparently routed to when a daemon/supervise holds
+// the repo lock. Session-establishing commands (init/supervise/daemon/shell)
+// are excluded — they must own the lock themselves.
+func ctlRoutable(name string) bool {
+	switch name {
+	case "checkout", "commit", "exec", "tag", "gc", "tournament":
+		return true
+	}
+	return false
+}
+
+// liveControlSocket returns a control socket to route through when the lock is
+// busy, or "" if none is reachable. Checks, in order: AGENTENV_SOCKET, the
+// daemon socket (<root>/agentenv.sock), and the self-rollback in-sandbox socket
+// (<root>/work/current/.agentenv/control.sock).
+func liveControlSocket(root string) string {
+	candidates := []string{
+		os.Getenv("AGENTENV_SOCKET"),
+		filepath.Join(root, "agentenv.sock"),
+		filepath.Join(root, "work", "current", ".agentenv", "control.sock"),
+	}
+	for _, p := range candidates {
+		if p == "" {
+			continue
+		}
+		if fi, err := os.Stat(p); err == nil && fi.Mode()&os.ModeSocket != 0 {
+			return p
+		}
+	}
+	return ""
+}
 
 // Run parses os.Args[1:], dispatches, and returns the exit code main should
 // surface. It does NOT call os.Exit itself — that bypasses deferred Release()
@@ -80,6 +114,22 @@ func Run(version string) int {
 		var err error
 		lock, err = repo.AcquireLock(root)
 		if err != nil {
+			// The lock is held by a running daemon/supervise. Rather than fail
+			// with "another session is active", transparently route this command
+			// through that session's control socket — so `agentenv checkout <id>`
+			// just works whether or not a daemon is up. Only commands with an
+			// out-of-band equivalent are routed; the rest still report the error.
+			if sock := liveControlSocket(root); sock != "" && ctlRoutable(name) {
+				if e := cmdCtl(append([]string{"--socket", sock, name}, rest...)); e != nil {
+					var ee ExitError
+					if errors.As(e, &ee) {
+						return int(ee)
+					}
+					fmt.Fprintln(os.Stderr, "error:", e)
+					return 1
+				}
+				return 0
+			}
 			fmt.Fprintln(os.Stderr, "error:", err)
 			return 1
 		}

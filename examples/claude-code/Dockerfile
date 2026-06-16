@@ -73,6 +73,13 @@ ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,HTTP_PROXY,HTTPS_PROXY,NO_PROXY
 # caches (.cache/.npm/.local, apt lists) — so the snapshot DAG shows only the
 # changes Claude makes to your project. Set AGENTENV_IGNORE only to add more.
 
+# Make apt work INSIDE the rootless sandbox. In a user namespace, apt's
+# privilege-drop to the _apt user fails ("setgroups ... Operation not
+# permitted" — userns disallows setgroups after the uid map). Disabling apt's
+# sandbox user avoids the setgroups call. Baked into the image so it's seeded
+# into the managed rootfs; Claude Code can then run apt-get install inside.
+RUN printf 'APT::Sandbox::User "root";\n' > /etc/apt/apt.conf.d/99-agentenv-no-sandbox
+
 # Register the agentenv MCP server so Claude Code can roll back its OWN
 # environment via the agentenv__checkout tool. It talks to the control socket
 # INSIDE the sandbox (supervise --self-rollback puts it at /.agentenv/control.sock),
