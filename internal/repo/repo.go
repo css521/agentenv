@@ -304,9 +304,17 @@ func (r *Repo) Exec(args []string, stdin io.Reader, stdout, stderr io.Writer) (i
 // tokens, K8s service-account tokens, ANTHROPIC_API_KEY, etc.) in its env, and
 // the agent's commands MUST NOT see them by default.
 //
-// To pass extra vars through, name them AGENTENV_PASS_<VAR> in agentenv's env —
-// e.g. AGENTENV_PASS_HTTPS_PROXY=http://... gets forwarded as HTTPS_PROXY=...
-// inside the sandbox. Explicit, auditable, no surprises.
+// Two ways to forward extra vars through the allow-list:
+//
+//   - AGENTENV_PASS_<VAR>=val  → forwards <VAR>=val. Carries the value inline;
+//     good for one-offs (AGENTENV_PASS_HTTPS_PROXY=http://...).
+//   - AGENTENV_FORWARD=A,B,C   → forwards the CURRENT values of vars A, B, C by
+//     name. Good when the values are already in agentenv's env (e.g. a wrapper
+//     image bakes `ENV AGENTENV_FORWARD=ANTHROPIC_API_KEY,...` and the user
+//     just passes `-e ANTHROPIC_API_KEY=...`). Names support a trailing `*`
+//     wildcard, e.g. `ANTHROPIC_*`.
+//
+// Both are explicit and auditable; nothing leaks without being named.
 func sandboxEnv() []string {
 	allow := []string{"PATH", "HOME", "TERM", "USER", "SHELL", "LANG", "LOGNAME"}
 	out := make([]string, 0, len(allow)+4)
@@ -315,6 +323,7 @@ func sandboxEnv() []string {
 			out = append(out, k+"="+v)
 		}
 	}
+	forward := parseForwardList(os.Getenv("AGENTENV_FORWARD"))
 	for _, kv := range os.Environ() {
 		// LC_* (locale) is whitelisted as a family.
 		if strings.HasPrefix(kv, "LC_") {
@@ -324,6 +333,11 @@ func sandboxEnv() []string {
 		// AGENTENV_PASS_<VAR>=val → <VAR>=val forwarded to the agent's command.
 		if name, val, ok := strings.Cut(kv, "="); ok && strings.HasPrefix(name, "AGENTENV_PASS_") {
 			out = append(out, strings.TrimPrefix(name, "AGENTENV_PASS_")+"="+val)
+			continue
+		}
+		// AGENTENV_FORWARD names: forward the var verbatim if it matches.
+		if name, _, ok := strings.Cut(kv, "="); ok && forwardMatch(forward, name) {
+			out = append(out, kv)
 		}
 	}
 	if !envHas(out, "PATH") {
@@ -339,6 +353,36 @@ func envHas(env []string, key string) bool {
 	p := key + "="
 	for _, kv := range env {
 		if strings.HasPrefix(kv, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// parseForwardList splits AGENTENV_FORWARD ("A,B,ANTHROPIC_*") into trimmed,
+// non-empty patterns.
+func parseForwardList(v string) []string {
+	if v == "" {
+		return nil
+	}
+	var out []string
+	for _, p := range strings.Split(v, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// forwardMatch reports whether name matches any pattern, where a trailing '*'
+// is a prefix wildcard (e.g. "ANTHROPIC_*" matches "ANTHROPIC_API_KEY").
+func forwardMatch(patterns []string, name string) bool {
+	for _, p := range patterns {
+		if strings.HasSuffix(p, "*") {
+			if strings.HasPrefix(name, strings.TrimSuffix(p, "*")) {
+				return true
+			}
+		} else if p == name {
 			return true
 		}
 	}

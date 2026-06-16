@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `agentenv shell -- <cmd>` runs an arbitrary program inside the sandbox on a
+  PTY (defaults to a login shell). Lets a wrapper image drop you straight into,
+  say, an interactive Claude Code session whose whole environment is versioned.
+- `AGENTENV_FORWARD=NAME,NAME,PREFIX_*` forwards named env vars (trailing `*`
+  wildcard) into the sandbox by value-at-call-time — complementing the existing
+  `AGENTENV_PASS_<VAR>=val` form. A wrapper image can bake
+  `ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*` so users just pass
+  `-e ANTHROPIC_API_KEY=...`.
+- `init --from` prints throttled copy progress (files + bytes) and a final
+  summary; a multi-GB seed no longer looks like a hang.
+- `Dockerfile.control` gains `--build-arg SEED_AT_BUILD=1` to bake the managed
+  rootfs into the image at build time (cached layer) instead of seeding on
+  first run. Build-time seeding also can't capture runtime-mounted K8s secrets.
+- `examples/claude-code/`: a ready-to-use rewindable Claude Code image —
+  `docker run -it` lands you in the sandbox shell, start `claude` yourself,
+  every change auto-snapshotted, rewind with `agentenv checkout`.
+- Release pipeline pushes multi-arch container images to
+  `ghcr.io/css521/agentenv:<tag>` + `:latest` (goreleaser `dockers`).
+- `.devcontainer/`: bumped to a Go 1.26 image, dropped the redundant
+  common-utils feature, and added an opt-in `AGENTENV_CN_MIRROR=1` apt mirror
+  for slow networks. `.dockerignore` keeps the build context small.
+
 ## [0.1.1] - 2026-06-16
 
 ### Changed
@@ -118,5 +143,6 @@ drive rollback natively.
   incremental checkout (copy only the diff); `AGENTENV_IGNORE` excludes ephemeral
   paths; auto-snapshot labels list the changed files.
 
+[Unreleased]: https://github.com/css521/agentenv/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/css521/agentenv/releases/tag/v0.1.1
 [0.1.0]: https://github.com/css521/agentenv/releases/tag/v0.1.0

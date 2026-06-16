@@ -117,20 +117,27 @@ func cmdDaemon(r *repo.Repo, args []string) error {
 	return api.Serve(ctx, r, cap, sock)
 }
 
-// cmdShell drops you into an interactive shell inside the environment with
-// auto-capture running alongside: run it once, work normally (every change is
-// auto-snapshotted), exit when done. Rewind later with checkout.
-func cmdShell(r *repo.Repo, _ []string) error {
+// cmdShell runs an interactive program inside the environment on a PTY with
+// auto-capture running alongside: every change it makes is auto-snapshotted,
+// and you rewind later with checkout. With no args it's a login shell; with a
+// command after `--` it runs that instead — e.g. `agentenv shell -- claude`
+// gives an interactive Claude Code session whose whole environment is
+// transparently versioned.
+func cmdShell(r *repo.Repo, args []string) error {
+	cmd := after(args, "--")
+	if len(cmd) == 0 {
+		cmd = []string{"bash", "-l"}
+	}
 	cap := r.StartCapturer()
 	defer cap.Stop()
 	cap.SetOnSnapshot(printSnapshot)
-	fmt.Printf("agentenv shell: backend=%s — interactive env, auto-snapshot on change. Type 'exit' to leave.\n", r.Backend().Name)
-	code, err := r.Shell([]string{"bash", "-l"})
+	fmt.Printf("agentenv shell: backend=%s — running %q inside the env, auto-snapshot on change.\n", r.Backend().Name, strings.Join(cmd, " "))
+	code, err := r.Shell(cmd)
 	if err != nil {
 		return err
 	}
 	cap.Flush("end of shell session") // capture the final state before stopping
-	fmt.Printf("\nagentenv shell: exited (code %d); snapshots captured.\n", code)
+	fmt.Printf("\nagentenv shell: %q exited (code %d); snapshots captured.\n", strings.Join(cmd, " "), code)
 	return nil
 }
 

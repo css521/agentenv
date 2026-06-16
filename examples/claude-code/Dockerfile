@@ -61,6 +61,12 @@ RUN mkdir -p /work
 WORKDIR /work
 
 ENV AGENTENV_ROOT=/var/lib/agentenv
+# Forward Claude Code's auth/config into the sandbox by NAME — the user passes
+# `-e ANTHROPIC_API_KEY=...` on docker run and agentenv forwards it (and the
+# rest of the ANTHROPIC_*/CLAUDE_* families + proxies) into the env where the
+# agent runs. docker exec sees these because they're real container env, not a
+# runtime export.
+ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,HTTP_PROXY,HTTPS_PROXY,NO_PROXY
 
 # Bake the managed rootfs at build time: the slow `init --from /` copy becomes
 # a cached image layer instead of a per-start tax. The entrypoint then sees an
@@ -68,6 +74,5 @@ ENV AGENTENV_ROOT=/var/lib/agentenv
 RUN agentenv init --from /
 
 ENTRYPOINT ["/usr/local/bin/rewindable-claude-entrypoint"]
-# Default: idle so the container stays up for `docker exec agentenv shell`
-# / `agentenv checkout` interaction. Override with a command to run headless.
-CMD ["idle"]
+# No CMD: `docker run -it <image>` lands you in an interactive shell inside the
+# sandbox — start `claude` yourself. Pass a command to run that instead.
