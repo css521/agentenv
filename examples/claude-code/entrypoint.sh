@@ -31,10 +31,16 @@ fi
 # `claude` (or anything) yourself; everything you do is auto-snapshotted. A
 # rollback relaunches the shell from the restored env (re-run claude after).
 #
+# --self-rollback: the control socket lives inside the sandbox and a rollback
+# does NOT kill the agent. So Claude Code can roll back its OWN environment via
+# the agentenv__checkout MCP tool and keep running — explore, undo, continue,
+# all from inside one session. (External rollback still works too: from another
+# terminal, `docker exec <c> agentenv ctl --socket <ROOT>/work/current/.agentenv/control.sock checkout <id>`.)
+#
 #   no args  → supervised interactive shell (start claude yourself)
 #   args     → supervise that command instead (e.g. `claude -p "..."`)
 if [ "$#" -eq 0 ]; then
-  exec agentenv supervise -- bash -l
+  exec agentenv supervise --self-rollback -- bash -l
 else
-  exec agentenv supervise -- "$@"
+  exec agentenv supervise --self-rollback -- "$@"
 fi

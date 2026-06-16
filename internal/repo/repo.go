@@ -61,7 +61,13 @@ type Repo struct {
 	cap           *Capturer  // background auto-snapshot loop (nil unless started)
 	keepRecent    int        // retention: number of most-recent non-structural nodes to always keep
 	checkoutCount int        // number of checkouts performed (for the supervisor)
+	preserveProcs bool       // self-rollback mode: checkout reverts in place without killing processes
 }
+
+// SetPreserveProcs enables self-rollback mode: Checkout reverts the working
+// rootfs in place WITHOUT killing running processes, so the agent that
+// triggered the rollback survives and observes the reverted environment.
+func (r *Repo) SetPreserveProcs(v bool) { r.preserveProcs = v }
 
 // token returns the backend's opaque change token for the working rootfs — the
 // signal the Capturer polls (btrfs generation / copy fingerprint).
@@ -658,7 +664,21 @@ func (r *Repo) Checkout(ref string) error {
 	}
 
 	r.checkoutCount++ // bump before killing so a supervisor sees rollback vs normal exit
-	r.killAll()       // other processes "roll back" = get killed
+	if r.preserveProcs {
+		// Self-rollback mode: revert the rootfs in place WITHOUT killing
+		// processes, so the agent that requested the rollback (via MCP/ctl)
+		// keeps running and sees the reverted environment. Viable because
+		// RestoreWork (copy backend) is an in-place sync that touches only
+		// changed files — the agent's own runtime (binary/libc/node) is
+		// unchanged across a session's snapshots, so it survives while its work
+		// files revert underneath it.
+		if err := r.resetWorking(id); err != nil {
+			return err
+		}
+		r.dag.Head = id
+		return r.dag.Save()
+	}
+	r.killAll() // other processes "roll back" = get killed
 	if err := r.resetWorking(id); err != nil {
 		return err
 	}

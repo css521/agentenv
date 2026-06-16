@@ -28,8 +28,10 @@ import (
 //     "just work" without anyone listing exact paths via env.
 //
 // alwaysIgnore: never snapshot, regardless of config — runtime mount points the
-// sandbox remounts fresh, and agentenv's own pivot_root scratch dir.
-var alwaysIgnore = []string{"proc", "sys", "dev", ".pivot_old"}
+// sandbox remounts fresh, agentenv's own pivot_root scratch dir, and the
+// .agentenv control dir (holds the in-sandbox control socket for self-rollback;
+// it must persist across a checkout, so it can never be reverted/snapshotted).
+var alwaysIgnore = []string{"proc", "sys", "dev", ".pivot_old", ".agentenv"}
 
 // baseIgnore: sensible built-in defaults so agents' bookkeeping churn doesn't
 // bury the snapshots that matter. AGENTENV_IGNORE EXTENDS this (never replaces).

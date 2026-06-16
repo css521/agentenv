@@ -73,9 +73,17 @@ ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*,HTTP_PROXY,HTTPS_PROXY,NO_PROXY
 # caches (.cache/.npm/.local, apt lists) — so the snapshot DAG shows only the
 # changes Claude makes to your project. Set AGENTENV_IGNORE only to add more.
 
+# Register the agentenv MCP server so Claude Code can roll back its OWN
+# environment via the agentenv__checkout tool. It talks to the control socket
+# INSIDE the sandbox (supervise --self-rollback puts it at /.agentenv/control.sock),
+# which is how Claude reaches the daemon from within the env. Baked into
+# ~/.claude.json now so it's present in the seeded rootfs below.
+RUN claude mcp add agentenv -s user -- env AGENTENV_SOCKET=/.agentenv/control.sock agentenv mcp || true
+
 # Bake the managed rootfs at build time: the slow `init --from /` copy becomes
 # a cached image layer instead of a per-start tax. The entrypoint then sees an
-# existing meta.json and skips straight to serving.
+# existing meta.json and skips straight to serving. (Runs AFTER the mcp
+# registration so ~/.claude.json is captured into the sandbox.)
 RUN agentenv init --from /
 
 ENTRYPOINT ["/usr/local/bin/rewindable-claude-entrypoint"]

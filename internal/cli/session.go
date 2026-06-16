@@ -32,9 +32,26 @@ func cmdSupervise(r *repo.Repo, args []string) error {
 	cap := r.StartCapturer()
 	defer cap.Stop()
 
+	// --self-rollback: let the supervised agent roll BACK ITSELF via MCP/ctl and
+	// keep running. Two things change: (1) the control socket lives INSIDE the
+	// sandbox (work/current/.agentenv/control.sock — an always-ignored dir), so
+	// the agent can reach it; (2) Checkout reverts in place without killing the
+	// agent. The agent calls agentenv__checkout, the env reverts around it, and
+	// it continues. (Default mode kills + relaunches the agent on rollback —
+	// right when an EXTERNAL operator drives the rollback.)
+	selfRollback := hasFlag(args, "--self-rollback")
 	sock := flagValue(args, "--socket")
 	if sock == "" {
-		sock = filepath.Join(rootDir(), "agentenv.sock")
+		if selfRollback {
+			dir := filepath.Join(r.Backend().Snapshotter.WorkRoot(), ".agentenv")
+			_ = os.MkdirAll(dir, 0o700)
+			sock = filepath.Join(dir, "control.sock")
+		} else {
+			sock = filepath.Join(rootDir(), "agentenv.sock")
+		}
+	}
+	if selfRollback {
+		r.SetPreserveProcs(true)
 	}
 	// signal.NotifyContext gives us a context that is cancelled on SIGINT/SIGTERM
 	// — replaces the old chan/goroutine plumbing and means everything downstream
@@ -44,20 +61,34 @@ func cmdSupervise(r *repo.Repo, args []string) error {
 	go api.Serve(ctx, r, cap, sock)
 	defer os.Remove(sock)
 
-	fmt.Printf("agentenv supervise: backend=%s control-socket=%s\n", r.Backend().Name, sock)
+	fmt.Printf("agentenv supervise: backend=%s control-socket=%s self-rollback=%v\n", r.Backend().Name, sock, selfRollback)
 	fmt.Printf("running agent inside the env: %s\n", strings.Join(agentArgs, " "))
 
 	// Two modes, chosen by whether stdin is a terminal:
 	//   - interactive (TTY): run the agent on a PTY in the foreground so a REPL
-	//     like Claude Code works. Rollback (via the socket, from another
-	//     terminal) kills the agent and we relaunch it from the restored env.
-	//   - headless (no TTY): background the agent, tail its log. The original
-	//     behavior, right for autonomous/long-running agents.
+	//     like Claude Code works.
+	//   - headless (no TTY): background the agent, tail its log — for
+	//     autonomous/long-running agents.
+	// In self-rollback mode a checkout doesn't kill the agent, so the run loops'
+	// "killed by rollback → relaunch" branch simply never fires.
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		return superviseInteractive(ctx, r, agentArgs)
 	}
 	cap.SetOnSnapshot(printSnapshot)
 	return superviseHeadless(ctx, r, agentArgs)
+}
+
+// hasFlag reports whether flag appears in argv (before any "--").
+func hasFlag(argv []string, flag string) bool {
+	for _, a := range argv {
+		if a == "--" {
+			return false
+		}
+		if a == flag {
+			return true
+		}
+	}
+	return false
 }
 
 // superviseInteractive runs the agent on the controlling terminal, relaunching
