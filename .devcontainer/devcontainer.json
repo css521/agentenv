@@ -16,14 +16,16 @@
     "--security-opt=apparmor=unconfined"
   ],
 
-  "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {}
-  },
-
+  // No `features` block: the MS Go devcontainer image already ships the
+  // vscode user, sudo, git, curl, zsh, oh-my-zsh, and everything else
+  // common-utils would have installed — adding the feature just re-runs
+  // a 2-minute apt-get for nothing (and stalls behind deb.debian.org on
+  // slow networks).
+  //
   // libbtrfs-dev lets you build with `-tags btrfs` (the optional fast-path
   // backend that needs cgo); the default static build needs nothing.
-  // sudo: devcontainer lifecycle commands run as remoteUser (vscode), not root.
-  // The common-utils feature gives vscode passwordless sudo.
+  // `sudo` because lifecycle commands run as remoteUser (vscode), and the
+  // base image's vscode user has passwordless sudo configured.
   "postCreateCommand": "sudo apt-get update && sudo apt-get install -y -qq libbtrfs-dev make",
   // Show the Makefile target list every time the container is attached, so a new
   // contributor immediately sees what they can do (build / test / verify / demo).

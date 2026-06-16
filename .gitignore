@@ -20,6 +20,12 @@ coverage.txt
 # Editor / OS
 .DS_Store
 .idea/
+# Devcontainer / JetBrains gateway scratch files generated during image build
+/.devcontainer/.features.temp.dockerfile
+/.devcontainer/.*.tmp
+# Devcontainer / JetBrains gateway scratch files generated during image build
+/.devcontainer/.features.temp.dockerfile
+/.devcontainer/.*.tmp
 # Allow committed shared settings, ignore per-user editor state.
 .vscode/*
 !.vscode/settings.json
