@@ -4,36 +4,66 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-06-16
+
+The "agent rolls back itself" release: an agent can now explore, undo, and
+continue — from inside one running session — and prune dead ends, all via its
+own MCP tools, while still capturing system-level changes.
 
 ### Added
-- **Interactive `supervise`**: when stdin is a TTY, `agentenv supervise -- <agent>`
-  now runs the agent on a PTY (so an interactive REPL like Claude Code works)
-  while still serving the control socket. A rollback issued from another
-  terminal (`agentenv ctl checkout <id>`) kills the agent and relaunches it
-  from the restored environment — you never have to exit it. Without a TTY it
-  keeps the previous headless (backgrounded + log-tail) behavior, so the same
-  command covers both interactive and long-running autonomous agents.
-- `agentenv shell -- <cmd>` runs an arbitrary program inside the sandbox on a
-  PTY (defaults to a login shell).
-- `AGENTENV_FORWARD=NAME,NAME,PREFIX_*` forwards named env vars (trailing `*`
-  wildcard) into the sandbox by value-at-call-time — complementing the existing
-  `AGENTENV_PASS_<VAR>=val` form. A wrapper image can bake
-  `ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*` so users just pass
-  `-e ANTHROPIC_API_KEY=...`.
-- `init --from` prints throttled copy progress (files + bytes) and a final
-  summary; a multi-GB seed no longer looks like a hang.
+- **`supervise --self-rollback`**: the agent rolls back its OWN environment
+  (via the `agentenv__checkout` MCP tool / `ctl checkout`) and KEEPS RUNNING.
+  The control socket lives inside the sandbox (`work/current/.agentenv/
+  control.sock`, an always-ignored dir) so the agent can reach the daemon from
+  within the env; a checkout reverts the rootfs in place WITHOUT killing the
+  agent. Survival works because the in-place sync only touches changed files —
+  the agent's own runtime is unchanged across a session's snapshots.
+- **Interactive `supervise`**: with a TTY, runs the agent on a PTY (interactive
+  REPLs like Claude Code work) while serving the control socket; without a TTY
+  it stays headless (backgrounded + log-tail) for autonomous agents. One
+  command covers both. Interactive mode is silent (no banner) so it doesn't
+  pollute the agent's terminal.
+- **Delete a node**: `agentenv delete <node>` (+ `ctl delete`, + the
+  `agentenv__delete` MCP tool). Splices the node out, re-parenting its children
+  to its parent so descendants survive; refuses to delete HEAD or the only
+  node. Safe even when children hardlink-share its files.
+- **Auto-route to a running session**: a lock-taking command (checkout / commit
+  / delete / exec / tag / gc / tournament) that can't get the repo lock because
+  a daemon/supervise holds it is transparently routed through that session's
+  control socket — so `agentenv checkout <id>` just works whether or not a
+  daemon is up.
+- `agentenv shell -- <cmd>` runs an arbitrary program inside the sandbox on a PTY.
+- `AGENTENV_FORWARD=NAME,PREFIX_*` forwards named env vars into the sandbox by
+  value-at-call-time (complements `AGENTENV_PASS_<VAR>=val`). Wrapper images
+  bake `ENV AGENTENV_FORWARD=ANTHROPIC_*,CLAUDE_*` so users just pass `-e ...`.
+- `init --from` prints throttled copy progress + a final summary.
 - `Dockerfile.control` gains `--build-arg SEED_AT_BUILD=1` to bake the managed
-  rootfs into the image at build time (cached layer) instead of seeding on
-  first run. Build-time seeding also can't capture runtime-mounted K8s secrets.
+  rootfs at build time (cached layer, instant start; also can't capture
+  runtime-mounted K8s secrets).
 - `examples/claude-code/`: a ready-to-use rewindable Claude Code image —
-  `docker run -it` lands you in the sandbox shell, start `claude` yourself,
-  every change auto-snapshotted, rewind with `agentenv checkout`.
-- Release pipeline pushes multi-arch container images to
-  `ghcr.io/css521/agentenv:<tag>` + `:latest` (goreleaser `dockers`).
-- `.devcontainer/`: bumped to a Go 1.26 image, dropped the redundant
-  common-utils feature, and added an opt-in `AGENTENV_CN_MIRROR=1` apt mirror
-  for slow networks. `.dockerignore` keeps the build context small.
+  `docker run -it`, start `claude`, every change auto-snapshotted, and Claude
+  can roll back / prune its own history via MCP. Published to
+  `ghcr.io/css521/rewindable-claude`.
+- Release pipeline pushes multi-arch images for both the agentenv binary
+  (`ghcr.io/css521/agentenv`) and the Claude Code env
+  (`ghcr.io/css521/rewindable-claude`).
+- `.devcontainer/`: Go 1.26 image, opt-in `AGENTENV_CN_MIRROR=1` apt mirror.
+  `.dockerignore` keeps the build context small.
+
+### Changed
+- Snapshot ignore overhaul: glob/segment patterns matched at any path depth
+  (`.claude*`, `*.tmp.*`), sensible built-in defaults (agent state + caches +
+  atomic temp files), `AGENTENV_IGNORE` now EXTENDS rather than replaces, and a
+  set of always-ignored runtime paths. Empty-change snapshots are skipped. Net
+  effect: the DAG shows only real work, not the agent's bookkeeping churn.
+- `agentenv status` reports the backend's actual ignore patterns.
+
+### Fixed
+- `agentenv ctl exec` propagates the inner command's exit code (was always 0).
+- Cross-uid daemon-socket connect reports both uids + a hint; daemon/headless
+  supervise log their uid on startup.
+- apt works inside the rootless sandbox (`examples/claude-code` bakes
+  `APT::Sandbox::User "root"` — userns forbids apt's setgroups privilege-drop).
 
 ## [0.1.1] - 2026-06-16
 
@@ -149,6 +179,6 @@ drive rollback natively.
   incremental checkout (copy only the diff); `AGENTENV_IGNORE` excludes ephemeral
   paths; auto-snapshot labels list the changed files.
 
-[Unreleased]: https://github.com/css521/agentenv/compare/v0.1.1...HEAD
+[0.2.0]: https://github.com/css521/agentenv/releases/tag/v0.2.0
 [0.1.1]: https://github.com/css521/agentenv/releases/tag/v0.1.1
 [0.1.0]: https://github.com/css521/agentenv/releases/tag/v0.1.0

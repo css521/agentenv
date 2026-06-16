@@ -9,9 +9,16 @@ The managed rootfs is baked at **build time** (`init --from /` runs once during
 `docker build`, cached in a layer), so container start is instant — no slow
 per-start copy.
 
-## Build
+## Pull (or build)
 
-Context is the repo root (so the agentenv binary compiles from source):
+Published multi-arch on each release:
+
+```bash
+docker pull ghcr.io/css521/rewindable-claude:latest
+# then use `ghcr.io/css521/rewindable-claude:latest` wherever `rewindable-claude` appears below
+```
+
+Or build it yourself — context is the repo root (so the agentenv binary compiles from source):
 
 ```bash
 docker build -f examples/claude-code/Dockerfile -t rewindable-claude .
