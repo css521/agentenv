@@ -15,26 +15,29 @@ import (
 	"github.com/css521/agentenv/internal/sandbox"
 )
 
-// defaultIgnore lists rootfs-relative paths whose CONTENTS are ephemeral and not
-// worth snapshotting (the empty directory is still kept). Override with
-// AGENTENV_IGNORE (comma-separated). These mainly shrink snapshots (e.g. apt's
-// download cache) and avoid churn from scratch dirs.
-var defaultIgnore = []string{
-	"tmp", "var/tmp", "var/cache", // ephemeral
-	"proc", "sys", "dev", ".pivot_old", // runtime mount points / sandbox artifacts
-}
+// alwaysIgnore lists paths that must NEVER be snapshotted regardless of user
+// config: runtime mount points the sandbox remounts fresh, and agentenv's own
+// pivot_root scratch dir. Letting a user's AGENTENV_IGNORE accidentally drop
+// these would reintroduce churn (e.g. ".pivot_old" snapshots) or try to
+// snapshot /proc. So they're forced on, always.
+var alwaysIgnore = []string{"proc", "sys", "dev", ".pivot_old"}
+
+// baseIgnore lists ephemeral CONTENT dirs ignored by default (the empty dir is
+// still kept). AGENTENV_IGNORE EXTENDS this list — it does not replace it — so
+// setting it can never silently re-enable snapshotting of apt caches or /tmp.
+var baseIgnore = []string{"tmp", "var/tmp", "var/cache"}
 
 func ignoreList() []string {
+	out := append([]string{}, alwaysIgnore...)
+	out = append(out, baseIgnore...)
 	if v := os.Getenv("AGENTENV_IGNORE"); v != "" {
-		var out []string
 		for _, p := range strings.Split(v, ",") {
 			if p = strings.Trim(strings.TrimSpace(p), "/"); p != "" {
 				out = append(out, p)
 			}
 		}
-		return out
 	}
-	return defaultIgnore
+	return out
 }
 
 func init() {
@@ -149,7 +152,14 @@ func (s *copySnap) DeleteWorkspace(path string) error { return os.RemoveAll(path
 
 func (s *copySnap) ignored(rel string) bool {
 	for _, p := range s.ignore {
-		if rel == p || strings.HasPrefix(rel, p+"/") {
+		// rel == p          : the path itself
+		// HasPrefix(rel,p+"/"): anything under it (it's a dir prefix)
+		// HasPrefix(rel,p+"."): sibling files this entry "owns" by extension —
+		//   crucial for agents that write atomic temp/lock files next to a
+		//   config, e.g. ignoring "root/.claude" also covers
+		//   "root/.claude.json", "root/.claude.json.lock", and
+		//   "root/.claude.json.tmp.8.0ee0fa83" without listing each.
+		if rel == p || strings.HasPrefix(rel, p+"/") || strings.HasPrefix(rel, p+".") {
 			return true
 		}
 	}
