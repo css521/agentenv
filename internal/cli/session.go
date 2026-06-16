@@ -72,10 +72,10 @@ func cmdSupervise(r *repo.Repo, args []string) error {
 	// In self-rollback mode a checkout doesn't kill the agent, so the run loops'
 	// "killed by rollback → relaunch" branch simply never fires.
 	if term.IsTerminal(int(os.Stdin.Fd())) {
-		return superviseInteractive(ctx, r, agentArgs)
+		return superviseInteractive(ctx, r, agentArgs, selfRollback)
 	}
 	cap.SetOnSnapshot(printSnapshot)
-	return superviseHeadless(ctx, r, agentArgs)
+	return superviseHeadless(ctx, r, agentArgs, selfRollback)
 }
 
 // hasFlag reports whether flag appears in argv (before any "--").
@@ -91,10 +91,13 @@ func hasFlag(argv []string, flag string) bool {
 	return false
 }
 
-// superviseInteractive runs the agent on the controlling terminal, relaunching
-// it after each rollback. Snapshot notices are NOT printed (they'd corrupt the
-// agent's TUI — inspect history from another terminal with `agentenv ctl log`).
-func superviseInteractive(ctx context.Context, r *repo.Repo, agentArgs []string) error {
+// superviseInteractive runs the agent on the controlling terminal. In default
+// mode a rollback kills the agent and we relaunch it from the restored env. In
+// self-rollback mode the agent is never killed by a checkout (it rolls itself
+// back and keeps running), so any exit is genuine — we don't relaunch.
+// Snapshot notices are NOT printed (they'd corrupt the agent's TUI — inspect
+// history from another terminal with `agentenv ctl log`).
+func superviseInteractive(ctx context.Context, r *repo.Repo, agentArgs []string, selfRollback bool) error {
 	for {
 		if ctx.Err() != nil {
 			return nil
@@ -104,20 +107,23 @@ func superviseInteractive(ctx context.Context, r *repo.Repo, agentArgs []string)
 		if ctx.Err() != nil {
 			return nil
 		}
-		if r.CheckoutCount() > before {
+		if !selfRollback && r.CheckoutCount() > before {
 			fmt.Println("\nagentenv supervise: rolled back — relaunching agent from the restored env")
 			continue
 		}
 		if err != nil {
 			return err
 		}
-		fmt.Println("\nagentenv supervise: agent exited on its own; stopping")
+		fmt.Println("\nagentenv supervise: agent exited; stopping")
 		return nil
 	}
 }
 
 // superviseHeadless backgrounds the agent and tails its log (autonomous agents).
-func superviseHeadless(ctx context.Context, r *repo.Repo, agentArgs []string) error {
+// In self-rollback mode a checkout never kills the agent, so we don't treat an
+// exit as a rollback-relaunch — the agent rolled itself back and then exited
+// for real.
+func superviseHeadless(ctx context.Context, r *repo.Repo, agentArgs []string, selfRollback bool) error {
 	for {
 		if ctx.Err() != nil {
 			return nil
@@ -138,11 +144,11 @@ func superviseHeadless(ctx context.Context, r *repo.Repo, agentArgs []string) er
 			case <-time.After(200 * time.Millisecond):
 			}
 		}
-		if r.CheckoutCount() > before {
+		if !selfRollback && r.CheckoutCount() > before {
 			fmt.Println("  agent killed by rollback — restarting from the restored env")
 			continue
 		}
-		fmt.Println("agentenv supervise: agent exited on its own; stopping")
+		fmt.Println("agentenv supervise: agent exited; stopping")
 		return nil
 	}
 }
