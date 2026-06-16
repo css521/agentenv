@@ -37,5 +37,45 @@ checksum:
 changelog:
   use: github
 
+# Multi-arch container images pushed to ghcr.io. Two per-arch images are built
+# (each with a binary matching its target platform), then a single manifest
+# list points at both — so `docker pull ghcr.io/css521/agentenv:vX.Y.Z`
+# transparently picks amd64 or arm64.
+dockers:
+  - image_templates:
+      - "ghcr.io/css521/agentenv:{{ .Version }}-amd64"
+    use: buildx
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.source=https://github.com/css521/agentenv"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+  - image_templates:
+      - "ghcr.io/css521/agentenv:{{ .Version }}-arm64"
+    use: buildx
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.source=https://github.com/css521/agentenv"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+docker_manifests:
+  - name_template: "ghcr.io/css521/agentenv:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/css521/agentenv:{{ .Version }}-amd64"
+      - "ghcr.io/css521/agentenv:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/css521/agentenv:latest"
+    image_templates:
+      - "ghcr.io/css521/agentenv:{{ .Version }}-amd64"
+      - "ghcr.io/css521/agentenv:{{ .Version }}-arm64"
+
 release:
   draft: true

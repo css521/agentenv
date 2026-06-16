@@ -34,6 +34,7 @@ CGO_ENABLED=1 go build -tags btrfs -o agentenv .     # optional btrfs fast path
 ```
 
 Prebuilt binaries are attached to each [release](https://github.com/css521/agentenv/releases).
+Multi-arch container images at `ghcr.io/css521/agentenv` (`:latest` or `:vX.Y.Z`).
 
 ## Why it's different
 

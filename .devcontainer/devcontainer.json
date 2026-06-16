@@ -4,7 +4,9 @@
   // libbtrfs-dev pre-installed, seccomp relaxed so agentenv's user-namespace
   // runner works, and the project source mounted as the workspace.
   "name": "agentenv-dev",
-  "image": "mcr.microsoft.com/devcontainers/go:1-1.23",
+  // Image-version 2.x is where MS publishes Go 1.25+ (the older 1-1.xx
+  // line tops out at Go 1.24, which fails our go.mod's `go 1.26` directive).
+  "image": "mcr.microsoft.com/devcontainers/go:2.1-1.26",
 
   // The agentenv runner clones into a fresh user namespace; the dev container's
   // default seccomp profile blocks that. Unconfining it inside the dev container
@@ -20,7 +22,9 @@
 
   // libbtrfs-dev lets you build with `-tags btrfs` (the optional fast-path
   // backend that needs cgo); the default static build needs nothing.
-  "postCreateCommand": "apt-get update && apt-get install -y -qq libbtrfs-dev make",
+  // sudo: devcontainer lifecycle commands run as remoteUser (vscode), not root.
+  // The common-utils feature gives vscode passwordless sudo.
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y -qq libbtrfs-dev make",
   // Show the Makefile target list every time the container is attached, so a new
   // contributor immediately sees what they can do (build / test / verify / demo).
   "postAttachCommand": "make help",
