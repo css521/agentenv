@@ -122,6 +122,17 @@ func register(s *mcp.Server, sock string) {
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in nodeArgs) (*mcp.CallToolResult, any, error) {
 		return relay(sock, "checkout", map[string]any{"node": in.Node}, formatHead)
 	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "agentenv__delete",
+		Description: "Delete a node from the history (accepts node id, ID prefix, or tag). Its children re-parent to its parent, so descendants survive. Refuses to delete the current HEAD (check out another node first) or the only node. Use to prune dead-end explorations.",
+	}, func(_ context.Context, _ *mcp.CallToolRequest, in nodeArgs) (*mcp.CallToolResult, any, error) {
+		return relay(sock, "delete", map[string]any{"node": in.Node}, formatDeleted)
+	})
+}
+
+func formatDeleted(r *protocol.Response) string {
+	return "deleted; HEAD is " + r.Head
 }
 
 // relay issues a single daemon round-trip and packages the response. Errors

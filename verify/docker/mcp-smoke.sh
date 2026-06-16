@@ -85,8 +85,8 @@ ok "initialize → protocol=$PROTOCOL serverInfo=$SRV_NAME"
 # --- id=2: tools/list -------------------------------------------------------
 TOOLS_LIST=$(byid 2)
 TOOL_COUNT=$(echo "$TOOLS_LIST" | jq '.result.tools | length')
-[ "$TOOL_COUNT" = "6" ] || die "tools/list: expected 6 tools, got $TOOL_COUNT"
-for want in agentenv__head agentenv__log agentenv__branches agentenv__show agentenv__diff agentenv__checkout; do
+[ "$TOOL_COUNT" = "7" ] || die "tools/list: expected 7 tools, got $TOOL_COUNT"
+for want in agentenv__head agentenv__log agentenv__branches agentenv__show agentenv__diff agentenv__checkout agentenv__delete; do
   echo "$TOOLS_LIST" | jq -e ".result.tools[] | select(.name == \"$want\")" >/dev/null \
     || die "tools/list: missing $want"
 done

@@ -21,7 +21,7 @@ import (
 // are excluded — they must own the lock themselves.
 func ctlRoutable(name string) bool {
 	switch name {
-	case "checkout", "commit", "exec", "tag", "gc", "tournament":
+	case "checkout", "commit", "exec", "tag", "gc", "tournament", "delete":
 		return true
 	}
 	return false

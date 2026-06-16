@@ -310,6 +310,19 @@ func cmdTournament(r *repo.Repo, args []string) error {
 	return nil
 }
 
+// cmdDelete removes a node from the commit-DAG (and its snapshot). Children are
+// re-parented to the node's parent, so descendants survive.
+func cmdDelete(r *repo.Repo, args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: agentenv delete <node>")
+	}
+	if err := r.Delete(args[0]); err != nil {
+		return err
+	}
+	fmt.Printf("deleted %s\n", args[0])
+	return nil
+}
+
 func cmdGC(r *repo.Repo, _ []string) error {
 	removed, err := r.GC()
 	if err != nil {

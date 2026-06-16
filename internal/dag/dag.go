@@ -139,6 +139,54 @@ func (r *Repo) Get(id string) (*Node, bool) {
 	return n, ok
 }
 
+// Delete removes node id from the graph, splicing it out: its children are
+// re-parented to id's parent (so the tree stays connected — deleting a middle
+// node keeps its descendants), and any tags pointing at id are dropped. The
+// caller is responsible for the policy checks (not HEAD, not the only node) and
+// for removing the on-disk snapshot. Returns id's former parent ("" if it was a
+// root) and whether the node existed.
+func (r *Repo) Delete(id string) (parent string, ok bool) {
+	n, ok := r.Nodes[id]
+	if !ok {
+		return "", false
+	}
+	parent = n.Parent
+	for _, cid := range n.Children {
+		c := r.Nodes[cid]
+		if c == nil {
+			continue
+		}
+		c.Parent = parent
+		if parent != "" {
+			if p := r.Nodes[parent]; p != nil {
+				p.Children = append(p.Children, cid)
+			}
+		}
+	}
+	if parent != "" {
+		if p := r.Nodes[parent]; p != nil {
+			p.Children = removeID(p.Children, id)
+		}
+	}
+	delete(r.Nodes, id)
+	for name, tid := range r.Tags {
+		if tid == id {
+			delete(r.Tags, name)
+		}
+	}
+	return parent, true
+}
+
+func removeID(ids []string, id string) []string {
+	out := ids[:0]
+	for _, x := range ids {
+		if x != id {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
 // Roots returns all nodes without a parent (normally just one).
 func (r *Repo) Roots() []*Node {
 	var out []*Node

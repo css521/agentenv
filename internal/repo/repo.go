@@ -686,6 +686,48 @@ func (r *Repo) Checkout(ref string) error {
 	return r.dag.Save()
 }
 
+// Delete removes a node from the DAG and deletes its on-disk snapshot. Its
+// children are re-parented to its parent so the tree stays connected (deleting
+// a middle node keeps its descendants). Refuses to delete the current HEAD (it
+// would orphan the live working tree — checkout elsewhere first) or the last
+// remaining node. Deleting a node's snapshot is safe even if children
+// hardlink-share its files: the shared inodes stay alive as long as a child
+// still references them (same reason GC is safe).
+func (r *Repo) Delete(ref string) error {
+	r.opMu.Lock()
+	defer r.opMu.Unlock()
+
+	id := r.resolveRefLocked(ref)
+	if id == "" {
+		return fmt.Errorf("unknown ref: %s", ref)
+	}
+	if id == r.dag.Head {
+		return fmt.Errorf("refusing to delete the current HEAD node %s — `agentenv checkout <other>` first", short(id))
+	}
+	if len(r.dag.Nodes) <= 1 {
+		return fmt.Errorf("refusing to delete the only node")
+	}
+	if _, ok := r.dag.Delete(id); !ok {
+		return fmt.Errorf("no such node: %s", id)
+	}
+	// Persist the metadata first (consistent DAG), then remove the snapshot dir.
+	// If the rm fails afterward it's a harmless orphan that `gc` reclaims.
+	if err := r.dag.Save(); err != nil {
+		return err
+	}
+	if err := r.be.Snapshotter.DeleteNode(id); err != nil {
+		fmt.Fprintf(os.Stderr, "agentenv: WARN deleted node %s from the DAG but could not remove its snapshot (gc will): %v\n", short(id), err)
+	}
+	return nil
+}
+
+func short(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
+}
+
 // Head returns the current HEAD node ID.
 func (r *Repo) Head() string { return r.dag.Head }
 

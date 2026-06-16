@@ -47,6 +47,7 @@ var commandList = []*command{
 	{"branches", "", "list branch tips (distinct explored end-states)", false, cmdBranches},
 	{"show", "<node>", "files this node changed vs its parent", false, cmdShow},
 	{"diff", "<a> <b>", "files that differ between two nodes", false, cmdDiff},
+	{"delete", "<node>", "remove a node from the DAG (children re-parent to its parent)", true, cmdDelete},
 	{"gc", "", "delete orphan snapshots (reclaims sparsified ones)", true, cmdGC},
 }
 

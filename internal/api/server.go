@@ -176,6 +176,12 @@ func dispatch(r *repo.Repo, c *repo.Capturer, req request) response {
 		}
 		return response{OK: true, Head: r.Head()}
 
+	case "delete":
+		if err := r.Delete(req.Node); err != nil {
+			return response{Error: err.Error()}
+		}
+		return response{OK: true, Head: r.Head()}
+
 	case "commit":
 		n, err := r.Commit(req.Message, "")
 		if err != nil {

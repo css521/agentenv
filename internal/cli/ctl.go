@@ -27,7 +27,7 @@ func cmdCtl(args []string) error {
 	req := map[string]any{"op": op}
 	switch op {
 	case "log", "head", "branches", "gc", "ps":
-	case "checkout", "show":
+	case "checkout", "show", "delete":
 		if len(a) < 1 {
 			return fmt.Errorf("usage: agentenv ctl %s <node>", op)
 		}
