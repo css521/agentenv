@@ -262,7 +262,7 @@ func cmdTournament(r *repo.Repo, args []string) error {
 	base := flagValue(args, "--base")
 	test := flagValue(args, "--test")
 	if test == "" {
-		return fmt.Errorf("usage: agentenv tournament [--base <ref>] --test \"<cmd>\" [--keep] -- \"cand1\" \"cand2\" ...")
+		return fmt.Errorf("usage: agentenv tournament [--base <ref>] --test \"<cmd>\" [--keep] -- \"cand1\" \"cand2\"")
 	}
 	cands := after(args, "--")
 	if len(cands) == 0 {

@@ -67,7 +67,7 @@ func cmdCtl(args []string) error {
 		test := flagValue(a, "--test")
 		cands := after(a, "--")
 		if test == "" || len(cands) == 0 {
-			return fmt.Errorf("usage: agentenv ctl tournament [--base <ref>] --test \"<cmd>\" -- \"cand1\" \"cand2\" ...")
+			return fmt.Errorf("usage: agentenv ctl tournament [--base <ref>] --test \"<cmd>\" -- \"cand1\" \"cand2\"")
 		}
 		req["base"], req["test"] = base, test
 		var list []map[string]string
