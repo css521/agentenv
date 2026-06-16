@@ -56,7 +56,7 @@ func TestIgnoreListAlwaysAndExtends(t *testing.T) {
 		// always
 		".pivot_old", "proc", "sys", "dev",
 		// base defaults
-		"tmp", "var/cache", "var/lib/apt/lists", ".claude", ".cache", "*.tmp.*",
+		"tmp", "var/cache", "var/lib/apt/lists", ".claude*", ".cache", "*.tmp.*",
 		// user extensions
 		"myproj/cache", "node_modules",
 	} {
