@@ -1,0 +1,33 @@
+name: Release
+
+# Fires when a tag like v0.1.0 / v1.2.3 is pushed. Cross-compiles linux/amd64
+# + linux/arm64 via goreleaser, attaches them to a DRAFT GitHub release
+# (because `.goreleaser.yaml` sets `release.draft: true`) — review and
+# Publish in the GitHub UI when ready.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # goreleaser creates the GitHub release + uploads artifacts
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # goreleaser needs the full history for changelog
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
