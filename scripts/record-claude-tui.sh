@@ -37,10 +37,11 @@ docker run --rm -it --platform="$PLATFORM" \
     echo "  Exit with Ctrl-D when done — the GIF will render."
     echo
     sleep 2
-    TERM=xterm-256color asciinema rec --overwrite --cols 100 --rows 30 \
+    TERM=xterm-256color asciinema rec --overwrite -f asciicast-v2 --cols 100 --rows 30 \
       -c "/usr/local/bin/rewindable-claude-entrypoint claude --permission-mode acceptEdits" \
       /out/claude-rewind.cast
-    agg --theme monokai --speed 1.2 --font-size 15 /out/claude-rewind.cast /out/claude-rewind.gif
+    agg --font-dir "${AGENTENV_GIF_FONT_DIR:-/usr/local/share/fonts}" --font-family "${AGENTENV_GIF_FONT:-JetBrains Mono}" \
+      --theme monokai --speed 1.2 --font-size 15 /out/claude-rewind.cast /out/claude-rewind.gif
     echo "wrote docs/claude-rewind.gif"
   '
 echo "wrote: $(pwd)/docs/claude-rewind.gif"

@@ -1,18 +1,18 @@
-# Recorder image: rewindable-claude + asciinema + agg, so make-claude-gif.sh
-# can record without re-installing the (slow) python/asciinema stack every run.
-#   docker build --platform=linux/arm64 -f scripts/Dockerfile.recorder \
-#     --build-arg AGG_LOCAL=... -t rewindable-claude-rec scripts/   (see make-claude-gif.sh)
+# Recorder image: rewindable-claude + asciinema + agg + a monospace font, so
+# make-claude-gif.sh / record-claude-tui.sh can record without any apt/pip
+# install. asciinema (v3) and agg are single static binaries; the only other
+# need is one .ttf for agg's renderer. Populate the build context first:
+#   bash scripts/fetch-recording-tools.sh            # → scripts/.recorder-bin/
+#   docker build -f scripts/Dockerfile.recorder -t rewindable-claude-rec scripts/
 FROM rewindable-claude
 
-RUN sed -ri 's#deb\.debian\.org#mirrors.aliyun.com#g' /etc/apt/sources.list.d/*.sources 2>/dev/null || true \
- && apt-get update -qq \
- && apt-get install -y -qq python3-pip fonts-dejavu-core >/dev/null 2>&1 \
- && (pip3 install --quiet --break-system-packages --index-url https://mirrors.aliyun.com/pypi/simple/ asciinema \
-     || pip3 install --quiet --break-system-packages asciinema)
+# Static tools (no apt, no python). asciinema v3 records; agg renders cast→GIF.
+COPY .recorder-bin/asciinema /usr/local/bin/asciinema
+COPY .recorder-bin/agg       /usr/local/bin/agg
+COPY .recorder-bin/JetBrainsMono-Regular.ttf /usr/local/share/fonts/JetBrainsMono-Regular.ttf
+RUN chmod 0755 /usr/local/bin/asciinema /usr/local/bin/agg
 
-# agg (the cast→GIF renderer) is copied in from the build context.
-COPY agg /usr/local/bin/agg
-RUN chmod 0755 /usr/local/bin/agg
+# agg looks fonts up by directory; point demos at this one.
+ENV AGENTENV_GIF_FONT_DIR=/usr/local/share/fonts AGENTENV_GIF_FONT="JetBrains Mono"
 
-# Restore the rewindable-claude entrypoint (FROM inherits it, but be explicit).
 ENTRYPOINT ["/usr/local/bin/rewindable-claude-entrypoint"]

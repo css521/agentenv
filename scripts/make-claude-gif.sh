@@ -37,14 +37,15 @@ docker run --rm --platform="$PLATFORM" \
   --entrypoint bash \
   "$IMAGE" -c '
     set -e
-    command -v asciinema >/dev/null || { echo "recorder image missing asciinema — build scripts/Dockerfile.recorder" >&2; exit 1; }
+    command -v asciinema >/dev/null || { echo "recorder image missing asciinema — fetch-recording-tools.sh + build scripts/Dockerfile.recorder" >&2; exit 1; }
 
     # /rec.sh (mounted) invokes the image entrypoint → supervise --self-rollback
-    # -- claude. asciinema records the real Claude Code session.
-    TERM=xterm-256color asciinema rec --overwrite --cols 100 --rows 30 \
+    # -- claude. asciinema (v3 binary) records in v2 so agg 1.5 can read it.
+    TERM=xterm-256color asciinema rec --overwrite -f asciicast-v2 --cols 100 --rows 30 \
       -c "bash /rec.sh" /out/claude-rewind.cast
 
-    agg --theme monokai --speed 1.5 --font-size 15 /out/claude-rewind.cast /out/claude-rewind.gif
+    agg --font-dir "${AGENTENV_GIF_FONT_DIR:-/usr/local/share/fonts}" --font-family "${AGENTENV_GIF_FONT:-JetBrains Mono}" \
+      --theme monokai --speed 1.5 --font-size 15 /out/claude-rewind.cast /out/claude-rewind.gif
     ls -la /out/claude-rewind.cast /out/claude-rewind.gif
   '
 echo "wrote: $(pwd)/docs/claude-rewind.gif"

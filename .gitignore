@@ -34,3 +34,6 @@ coverage.txt
 # Local-only working docs (not for public repo)
 /REVIEW_ISSUES.md
 /.claude/
+
+# Recording tool binaries (fetched via scripts/fetch-recording-tools.sh)
+/scripts/.recorder-bin/
