@@ -185,6 +185,16 @@ func cmdDaemon(r *repo.Repo, args []string) error {
 			sock = filepath.Join(rootDir(), "agentenv.sock")
 		}
 	}
+	// Optional REST transport. Off unless --http :PORT (or AGENTENV_HTTP=:PORT)
+	// is given — keeps the daemon socket-only by default so a stray port
+	// doesn't appear on first run. Token via AGENTENV_HTTP_TOKEN; required for
+	// any non-loopback bind.
+	httpAddr := flagValue(args, "--http")
+	if httpAddr == "" {
+		httpAddr = os.Getenv("AGENTENV_HTTP")
+	}
+	httpToken := os.Getenv("AGENTENV_HTTP_TOKEN")
+
 	cap := r.StartCapturer()
 	defer cap.Stop()
 
@@ -195,6 +205,18 @@ func cmdDaemon(r *repo.Repo, args []string) error {
 	// socket=0600) right away — pairs with daemonclient.diagnoseConnect.
 	fmt.Printf("agentenv daemon: backend=%s listening on %s (uid=%d, mode=0600)\n", r.Backend().Name, sock, os.Getuid())
 	defer os.Remove(sock)
+
+	if httpAddr != "" {
+		// Both transports share the same *repo; the repo's own locks serialize
+		// concurrent mutations. The HTTP listener runs in a goroutine so the
+		// socket server (api.Serve below) is still the foreground one whose
+		// error we surface.
+		go func() {
+			if err := api.ServeHTTP(ctx, r, cap, httpAddr, httpToken); err != nil {
+				fmt.Fprintf(os.Stderr, "agentenv http: %v\n", err)
+			}
+		}()
+	}
 	return api.Serve(ctx, r, cap, sock)
 }
 

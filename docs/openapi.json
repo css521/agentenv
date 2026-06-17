@@ -1,0 +1,1023 @@
+{
+    "components": {
+        "schemas": {
+            "Change": {
+                "additionalProperties": false,
+                "properties": {
+                    "kind": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "kind",
+                    "path"
+                ],
+                "type": "object"
+            },
+            "ChangesOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/ChangesOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "changes": {
+                        "items": {
+                            "$ref": "#/components/schemas/Change"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "changes"
+                ],
+                "type": "object"
+            },
+            "CheckoutInBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/CheckoutInBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "node": {
+                        "description": "node id, ID prefix, or tag name",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "node"
+                ],
+                "type": "object"
+            },
+            "CommitInBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/CommitInBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "message": {
+                        "description": "commit message",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
+                ],
+                "type": "object"
+            },
+            "EmptyOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/EmptyOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "ErrorDetail": {
+                "additionalProperties": false,
+                "properties": {
+                    "location": {
+                        "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+                        "type": "string"
+                    },
+                    "message": {
+                        "description": "Error message text",
+                        "type": "string"
+                    },
+                    "value": {
+                        "description": "The value at the given location"
+                    }
+                },
+                "type": "object"
+            },
+            "ErrorModel": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/ErrorModel.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "detail": {
+                        "description": "A human-readable explanation specific to this occurrence of the problem.",
+                        "examples": [
+                            "Property foo is required but is missing."
+                        ],
+                        "type": "string"
+                    },
+                    "errors": {
+                        "description": "Optional list of individual error details",
+                        "items": {
+                            "$ref": "#/components/schemas/ErrorDetail"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    },
+                    "instance": {
+                        "description": "A URI reference that identifies the specific occurrence of the problem.",
+                        "examples": [
+                            "https://example.com/error-log/abc123"
+                        ],
+                        "format": "uri",
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "HTTP status code",
+                        "examples": [
+                            400
+                        ],
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "title": {
+                        "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+                        "examples": [
+                            "Bad Request"
+                        ],
+                        "type": "string"
+                    },
+                    "type": {
+                        "default": "about:blank",
+                        "description": "A URI reference to human-readable documentation for the error.",
+                        "examples": [
+                            "https://example.com/errors/example"
+                        ],
+                        "format": "uri",
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "GcOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/GcOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "removed": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "removed"
+                ],
+                "type": "object"
+            },
+            "HeadOnlyOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/HeadOnlyOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "head": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "head"
+                ],
+                "type": "object"
+            },
+            "HeadOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/HeadOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "head": {
+                        "description": "the current HEAD node id",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "head"
+                ],
+                "type": "object"
+            },
+            "LogOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/LogOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "head": {
+                        "type": "string"
+                    },
+                    "nodes": {
+                        "items": {
+                            "$ref": "#/components/schemas/Node"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "head",
+                    "nodes"
+                ],
+                "type": "object"
+            },
+            "Node": {
+                "additionalProperties": false,
+                "properties": {
+                    "head": {
+                        "type": "boolean"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "leaf": {
+                        "type": "boolean"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "parent": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "message"
+                ],
+                "type": "object"
+            },
+            "NodeRefOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/NodeRefOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "head": {
+                        "type": "string"
+                    },
+                    "node": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "head"
+                ],
+                "type": "object"
+            },
+            "ShowOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/ShowOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "changes": {
+                        "items": {
+                            "$ref": "#/components/schemas/Change"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    },
+                    "parent": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "parent",
+                    "changes"
+                ],
+                "type": "object"
+            },
+            "TagSetInBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/TagSetInBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "ref": {
+                        "description": "target node id, prefix, or another tag",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name",
+                    "ref"
+                ],
+                "type": "object"
+            },
+            "TagsListOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/TagsListOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "tags": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    }
+                },
+                "required": [
+                    "tags"
+                ],
+                "type": "object"
+            },
+            "TournamentBranch": {
+                "additionalProperties": false,
+                "properties": {
+                    "cmd": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "node": {
+                        "type": "string"
+                    },
+                    "test_exit": {
+                        "format": "int64",
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "name",
+                    "cmd",
+                    "node",
+                    "test_exit"
+                ],
+                "type": "object"
+            },
+            "TournamentCandidate": {
+                "additionalProperties": false,
+                "properties": {
+                    "cmd": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name",
+                    "cmd"
+                ],
+                "type": "object"
+            },
+            "TournamentInBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/TournamentInBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "base": {
+                        "description": "base ref (default HEAD)",
+                        "type": "string"
+                    },
+                    "candidates": {
+                        "items": {
+                            "$ref": "#/components/schemas/TournamentCandidate"
+                        },
+                        "minItems": 1,
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    },
+                    "test": {
+                        "description": "test command run inside each candidate",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "base",
+                    "test",
+                    "candidates"
+                ],
+                "type": "object"
+            },
+            "TournamentOutBody": {
+                "additionalProperties": false,
+                "properties": {
+                    "$schema": {
+                        "description": "A URL to the JSON Schema for this object.",
+                        "examples": [
+                            "https://example.com/schemas/TournamentOutBody.json"
+                        ],
+                        "format": "uri",
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "branches": {
+                        "items": {
+                            "$ref": "#/components/schemas/TournamentBranch"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    },
+                    "head": {
+                        "type": "string"
+                    },
+                    "winner": {
+                        "type": "string"
+                    },
+                    "winner_node": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "head",
+                    "branches"
+                ],
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearer": {
+                "scheme": "bearer",
+                "type": "http"
+            }
+        }
+    },
+    "info": {
+        "description": "REST surface for the agentenv daemon. Same operations as the unix-socket protocol, plus an OpenAPI 3.1 spec at /openapi.json and interactive docs at /docs. Streaming `exec` is socket-only; everything else is here.",
+        "title": "agentenv",
+        "version": "0.3.0"
+    },
+    "openapi": "3.1.0",
+    "paths": {
+        "/v1/branches": {
+            "get": {
+                "description": "Returns the leaf nodes of the DAG \u2014 each is one fully-explored path.",
+                "operationId": "list-branches",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "List branch tips (distinct explored end-states)",
+                "tags": [
+                    "Branching"
+                ]
+            }
+        },
+        "/v1/checkout": {
+            "post": {
+                "description": "Kills processes in the inner env, rebuilds work/current from the target node, and points HEAD there. Accepts a full node id, an ID prefix, or a tag name.",
+                "operationId": "checkout",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckoutInBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HeadOnlyOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Roll the whole environment back to a node",
+                "tags": [
+                    "Mutation"
+                ]
+            }
+        },
+        "/v1/commit": {
+            "post": {
+                "description": "Freezes the working rootfs as a new immutable node, child of HEAD, and advances HEAD.",
+                "operationId": "commit",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CommitInBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NodeRefOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Snapshot the current working rootfs",
+                "tags": [
+                    "Mutation"
+                ]
+            }
+        },
+        "/v1/diff": {
+            "get": {
+                "description": "Returns the files that differ between the two refs. Useful for comparing branch tips.",
+                "operationId": "diff-nodes",
+                "parameters": [
+                    {
+                        "description": "first ref",
+                        "explode": false,
+                        "in": "query",
+                        "name": "a",
+                        "required": true,
+                        "schema": {
+                            "description": "first ref",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "second ref",
+                        "explode": false,
+                        "in": "query",
+                        "name": "b",
+                        "required": true,
+                        "schema": {
+                            "description": "second ref",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChangesOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Diff two nodes",
+                "tags": [
+                    "History"
+                ]
+            }
+        },
+        "/v1/gc": {
+            "post": {
+                "description": "Deletes on-disk snapshots that no node references (e.g. from interrupted operations, or from `DELETE /v1/nodes/{id}` calls that didn't reach the snapshot store). Returns the list of removed node ids.",
+                "operationId": "gc",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GcOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Reclaim disk by removing orphan snapshots",
+                "tags": [
+                    "Mutation"
+                ]
+            }
+        },
+        "/v1/head": {
+            "get": {
+                "description": "Returns the id of the node the working rootfs is currently derived from.",
+                "operationId": "get-head",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HeadOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Get the current HEAD node id",
+                "tags": [
+                    "History"
+                ]
+            }
+        },
+        "/v1/log": {
+            "get": {
+                "description": "Oldest first. Each entry includes parent id, message, and whether it is HEAD or a leaf.",
+                "operationId": "list-log",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "List every node in the commit DAG",
+                "tags": [
+                    "History"
+                ]
+            }
+        },
+        "/v1/nodes/{id}": {
+            "delete": {
+                "description": "Splices the node out: its children re-parent to its parent so descendants survive. Refuses to delete the current HEAD or the only remaining node.",
+                "operationId": "delete-node",
+                "parameters": [
+                    {
+                        "description": "node id, ID prefix, or tag name",
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "description": "node id, ID prefix, or tag name",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HeadOnlyOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Delete a node from the DAG",
+                "tags": [
+                    "Mutation"
+                ]
+            },
+            "get": {
+                "description": "Like `git show --stat`: which files this commit added, removed, or modified.",
+                "operationId": "show-node",
+                "parameters": [
+                    {
+                        "description": "node id, ID prefix, or tag name",
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "description": "node id, ID prefix, or tag name",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ShowOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Show files a node changed vs its parent",
+                "tags": [
+                    "History"
+                ]
+            }
+        },
+        "/v1/tags": {
+            "get": {
+                "description": "Returns a map of tag name to node id.",
+                "operationId": "list-tags",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsListOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "List all tags",
+                "tags": [
+                    "Tags"
+                ]
+            },
+            "post": {
+                "description": "Points the named tag at a node. The ref can be a full id, an ID prefix, another tag, or `HEAD`.",
+                "operationId": "set-tag",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TagSetInBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EmptyOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Set (or update) a tag",
+                "tags": [
+                    "Tags"
+                ]
+            }
+        },
+        "/v1/tournament": {
+            "post": {
+                "description": "Forks a fresh workspace from `base` for each candidate, runs the candidate's command, then runs `test` inside it. The first branch whose test exits 0 wins; HEAD moves to that branch. All branches are committed regardless of outcome \u2014 losers stay in the DAG and can be `DELETE`d later if desired.",
+                "operationId": "tournament",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TournamentInBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TournamentOutBody"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "default": {
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorModel"
+                                }
+                            }
+                        },
+                        "description": "Error"
+                    }
+                },
+                "summary": "Run N candidates in parallel, keep the winner",
+                "tags": [
+                    "Branching"
+                ]
+            }
+        }
+    },
+    "security": [
+        {
+            "bearer": []
+        }
+    ]
+}

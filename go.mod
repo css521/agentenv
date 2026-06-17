@@ -5,6 +5,7 @@ go 1.26
 require (
 	github.com/containerd/btrfs/v2 v2.0.0
 	github.com/creack/pty v1.1.24
+	github.com/danielgtaylor/huma/v2 v2.38.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	golang.org/x/sys v0.46.0
 	golang.org/x/term v0.44.0

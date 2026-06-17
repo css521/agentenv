@@ -4,9 +4,30 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-06-17
 
 ### Added
+- **HTTP transport + OpenAPI**: `agentenv daemon --http :PORT` (or
+  `AGENTENV_HTTP=":PORT"`) opens a REST surface alongside the unix socket.
+  Built on `huma` v2 — every typed handler signature contributes to an
+  OpenAPI 3.1 spec served at `/openapi.json`, with interactive docs at
+  `/docs`. 12 endpoints grouped into 4 tags (History / Mutation / Branching /
+  Tags) cover head/log/branches/show/diff/commit/checkout/delete/tags(get,
+  set)/tournament/gc; streaming `exec` stays socket-only (SSE port is
+  follow-up). Loopback is no-auth; non-loopback binds require
+  `AGENTENV_HTTP_TOKEN` (verified at startup — won't quietly expose itself).
+  See `examples/http_client.sh` for a curl walkthrough.
+- `docs/openapi.json` — pretty-printed snapshot of the live spec, so GitHub /
+  reviewers / SDK generators can read it without running the daemon.
+  `make openapi-snapshot` regenerates it from a one-off daemon (run before
+  tagging a release).
+- `examples/mcp_client.py`: drive `agentenv mcp` over JSON-RPC stdio from any
+  language (no Claude Code needed) — covers `agentenv__log` / `__branches` /
+  `__delete`.
+- `examples/goclient/main.go`: rewritten around the high-level `tournament`
+  socket op (one round-trip, parallel workspaces) + the new `delete` op.
+- `examples/branch_explore.py`: kept the manual-loop exploration pattern,
+  added a `delete` pass that prunes the losing branches.
 - New README hero GIF: real Claude Code, running inside `rewindable-claude`,
   deletes its own binary then calls `agentenv__checkout` MCP tool to roll the
   whole environment back — the binary is restored, the Claude session keeps
@@ -18,6 +39,9 @@ All notable changes to this project are documented here. The format is based on
   pure `COPY` over `rewindable-claude` — seconds to build.
 
 ### Removed
+- `examples/Client.java` — three near-identical socket clients was noise;
+  the goclient + python pair plus the new mcp_client / http_client cover the
+  patterns that matter.
 - Obsolete shell-scripted demos and recorders that the real Claude Code GIF
   supersedes: `examples/demo/` (killer-demo + self-rollback-demo + README),
   `scripts/make-demo-gif.sh`, `scripts/make-claude-gif.sh`,
@@ -200,6 +224,7 @@ drive rollback natively.
   incremental checkout (copy only the diff); `AGENTENV_IGNORE` excludes ephemeral
   paths; auto-snapshot labels list the changed files.
 
+[0.3.0]: https://github.com/css521/agentenv/releases/tag/v0.3.0
 [0.2.0]: https://github.com/css521/agentenv/releases/tag/v0.2.0
 [0.1.1]: https://github.com/css521/agentenv/releases/tag/v0.1.1
 [0.1.0]: https://github.com/css521/agentenv/releases/tag/v0.1.0

@@ -11,9 +11,14 @@ agentenv is **language-agnostic** on both sides:
      mutating commands auto-route through its socket — same command works
      whether or not a daemon is up.
   2. **Socket protocol** (newline-JSON, one request → one response or stream)
-     — what `daemon` + `supervise` serve; the `goclient` / `branch_explore.py` /
-     `Client.java` examples here use it directly.
-  3. **MCP** — `agentenv mcp` is a Model Context Protocol server over stdio.
+     — what `daemon` + `supervise` serve; the `goclient` / `branch_explore.py`
+     examples here use it directly.
+  3. **HTTP + OpenAPI** (v0.3.0) — same operations as REST, with an
+     OpenAPI 3.1 spec at `/openapi.json` and interactive docs at `/docs`.
+     Enable with `agentenv daemon --http 127.0.0.1:8911`. The
+     [`http_client.sh`](./http_client.sh) walkthrough shows curl. Streaming
+     `exec` stays socket-only.
+  4. **MCP** — `agentenv mcp` is a Model Context Protocol server over stdio.
      Use it from **Claude Code** (the headline path); the
      [`claude-code/`](./claude-code/) sub-example ships a ready-to-run image.
 
@@ -53,6 +58,7 @@ translations of each other.
 |------|--------|---------|
 | `branch_explore.py` | Socket (NDJSON) | Hand-rolled exploration: fork base → try 3 candidates → keep winner → **`delete` the losing branches** |
 | `goclient/main.go`  | Socket (NDJSON) | High-level `tournament` op: one round-trip, daemon runs the candidates in parallel workspaces; then `delete` the losers |
+| `http_client.sh`    | HTTP            | Plain `curl` against the REST endpoints; opens `/docs` in a browser for the auto-generated UI |
 | `mcp_client.py`     | MCP (JSON-RPC over stdio) | Drive `agentenv mcp` from any language (no Claude Code needed); calls `agentenv__log` / `__branches` / `__delete` |
 
 ## Simplest driver: the CLI
