@@ -46,15 +46,14 @@ Error frames have `{"error":"…"}` instead of `{"ok":true,…}`. Streaming ops
 
 ## Clients (all stdlib, no dependencies)
 
-| File | Language | Run |
-|------|----------|-----|
-| `branch_explore.py` | Python | `python3 branch_explore.py <sock>` |
-| `goclient/main.go`  | Go      | `go run goclient/main.go <sock>` |
-| `Client.java`       | Java 16+| `javac Client.java -d /tmp && java -cp /tmp Client <sock>` |
+Each demonstrates a distinct v0.2.0 pattern, so they're complements rather than
+translations of each other.
 
-Each forks the environment from one base, tries three candidate environments in
-parallel DAG branches (each in its own isolated workspace), and keeps the one
-that passes the test — purely over the socket.
+| File | Driver | Pattern |
+|------|--------|---------|
+| `branch_explore.py` | Socket (NDJSON) | Hand-rolled exploration: fork base → try 3 candidates → keep winner → **`delete` the losing branches** |
+| `goclient/main.go`  | Socket (NDJSON) | High-level `tournament` op: one round-trip, daemon runs the candidates in parallel workspaces; then `delete` the losers |
+| `mcp_client.py`     | MCP (JSON-RPC over stdio) | Drive `agentenv mcp` from any language (no Claude Code needed); calls `agentenv__log` / `__branches` / `__delete` |
 
 ## Simplest driver: the CLI
 

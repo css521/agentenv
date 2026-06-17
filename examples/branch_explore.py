@@ -65,6 +65,11 @@ class Env:
     def checkout(self, node):
         return self.call(op="checkout", node=node)["head"]
 
+    def delete(self, node):
+        """Remove a node from the DAG (children re-parent). Used to prune
+        dead-end exploration branches once we know they lost."""
+        return self.call(op="delete", node=node)
+
 
 def main():
     sock = sys.argv[1] if len(sys.argv) > 1 else "/agentfs/agentenv.sock"
@@ -93,13 +98,20 @@ def main():
             winner = name
     print("winner:", winner)
 
-    # Keep the winner; the other branches remain in history but are not HEAD.
+    # Keep the winner; PRUNE the losing branches with `delete` (v0.2.0) so the
+    # DAG doesn't keep dead-end snapshots forever. Children of a deleted node
+    # re-parent to its parent — harmless here because the losers are leaves.
     env.checkout(tips[winner])
+    for name, tip in tips.items():
+        if name != winner:
+            env.delete(tip)
+            print(f"  pruned dead-end {name} (node {tip})")
+
     have = env.exec("command -v jq && (command -v tree || echo no-tree) && (command -v figlet || echo no-figlet)")
     print("final env:\n" + have["stdout"].rstrip())
 
     if winner == "B":
-        print("PASS: agent explored 3 environments over the socket and kept the winner")
+        print("PASS: agent explored 3 environments, kept the winner, pruned the losers")
     else:
         print("FAIL: unexpected winner", winner)
         sys.exit(1)

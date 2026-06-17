@@ -37,3 +37,7 @@ coverage.txt
 
 # Recording tool binaries (fetched via scripts/fetch-recording-tools.sh)
 /scripts/.recorder-bin/
+
+# Python
+__pycache__/
+*.pyc
