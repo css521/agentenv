@@ -54,9 +54,9 @@ func TestBearerAuth(t *testing.T) {
 			t.Errorf("%s: got %d, want %d", name, rr.Code, wantStatus)
 		}
 	}
-	check("no-token /v1/head",      "GET", "/v1/head",      "",                401)
-	check("wrong-token /v1/head",   "GET", "/v1/head",      "Bearer nope",     401)
-	check("right-token /v1/head",   "GET", "/v1/head",      "Bearer secret",   204)
-	check("no-token /openapi.json", "GET", "/openapi.json", "",                200)
-	check("no-token /docs",         "GET", "/docs",         "",                200)
+	check("no-token /v1/head", "GET", "/v1/head", "", 401)
+	check("wrong-token /v1/head", "GET", "/v1/head", "Bearer nope", 401)
+	check("right-token /v1/head", "GET", "/v1/head", "Bearer secret", 204)
+	check("no-token /openapi.json", "GET", "/openapi.json", "", 200)
+	check("no-token /docs", "GET", "/docs", "", 200)
 }

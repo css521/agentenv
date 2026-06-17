@@ -129,8 +129,8 @@ type headOut struct {
 
 type logOut struct {
 	Body struct {
-		Head  string           `json:"head"`
-		Nodes []protocol.Node  `json:"nodes"`
+		Head  string          `json:"head"`
+		Nodes []protocol.Node `json:"nodes"`
 	}
 }
 
@@ -140,8 +140,8 @@ type nodeIDIn struct {
 
 type showOut struct {
 	Body struct {
-		Parent  string             `json:"parent"`
-		Changes []protocol.Change  `json:"changes"`
+		Parent  string            `json:"parent"`
+		Changes []protocol.Change `json:"changes"`
 	}
 }
 
@@ -198,18 +198,18 @@ type tagsListOut struct {
 
 type tournamentIn struct {
 	Body struct {
-		Base       string                          `json:"base" doc:"base ref (default HEAD)"`
-		Test       string                          `json:"test" required:"true" doc:"test command run inside each candidate"`
-		Candidates []protocol.TournamentCandidate  `json:"candidates" required:"true" minItems:"1"`
+		Base       string                         `json:"base" doc:"base ref (default HEAD)"`
+		Test       string                         `json:"test" required:"true" doc:"test command run inside each candidate"`
+		Candidates []protocol.TournamentCandidate `json:"candidates" required:"true" minItems:"1"`
 	}
 }
 
 type tournamentOut struct {
 	Body struct {
-		Head       string                       `json:"head"`
-		Winner     string                       `json:"winner,omitempty"`
-		WinnerNode string                       `json:"winner_node,omitempty"`
-		Branches   []protocol.TournamentBranch  `json:"branches"`
+		Head       string                      `json:"head"`
+		Winner     string                      `json:"winner,omitempty"`
+		WinnerNode string                      `json:"winner_node,omitempty"`
+		Branches   []protocol.TournamentBranch `json:"branches"`
 	}
 }
 
