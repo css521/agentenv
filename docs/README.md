@@ -1,16 +1,23 @@
 # docs/
 
-Shareable assets — these are reproducible from the source:
+Shareable assets:
 
-- `demo.cast` — asciinema recording of `examples/demo/killer-demo.sh`
-- `demo.gif`  — same cast rendered to GIF (embedded at the top of the main README)
+- `claude-rewind.cast` — asciinema recording of a real Claude Code session
+  (running inside the `rewindable-claude` image) deleting its own binary,
+  then calling the `agentenv__checkout` MCP tool to roll the WHOLE environment
+  back, and the binary returns.
+- `claude-rewind.gif` — same cast rendered to GIF, embedded at the top of the
+  main README.
 
-To re-record both, run:
+Recording requires a real terminal (the interactive Claude Code TUI does not
+render without a TTY). To re-record:
 
 ```sh
-bash scripts/make-demo-gif.sh
+bash scripts/fetch-recording-tools.sh                                    # one-time
+docker build --platform=linux/$(uname -m) -f scripts/Dockerfile.recorder \
+  -t rewindable-claude-rec scripts/                                      # one-time
+ANTHROPIC_API_KEY=... [ANTHROPIC_BASE_URL=...] [ANTHROPIC_MODEL=...] \
+  bash scripts/record-claude-tui.sh                                      # each time
 ```
 
-The script does everything inside Docker (installs asciinema + downloads agg,
-builds agentenv, runs the demo as **uid 1001 with no `--privileged`** to mirror a
-restricted Kubernetes pod, then renders the cast to a GIF).
+See `scripts/record-claude-tui.sh` for the prompt suggestions.

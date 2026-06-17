@@ -23,5 +23,17 @@ get .recorder-bin/agg \
 get .recorder-bin/JetBrainsMono-Regular.ttf \
   "https://github.com/JetBrains/JetBrainsMono/raw/master/fonts/ttf/JetBrainsMono-Regular.ttf"
 
+# DejaVu Sans Mono — fallback for box-drawing / geometric shapes that JetBrains
+# Mono doesn't cover (Claude Code's TUI uses '⏺' and box characters).
+# Distributed only inside a tarball; extract the one .ttf we need.
+if [ ! -f .recorder-bin/DejaVuSansMono.ttf ]; then
+  echo "fetching DejaVuSansMono.ttf"
+  curl -fL -m 300 -o .recorder-bin/dejavu.tar.bz2 \
+    "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2"
+  tar -xjf .recorder-bin/dejavu.tar.bz2 -C .recorder-bin/ \
+    --strip-components=2 dejavu-fonts-ttf-2.37/ttf/DejaVuSansMono.ttf
+  rm -f .recorder-bin/dejavu.tar.bz2
+fi
+
 chmod +x .recorder-bin/asciinema .recorder-bin/agg
 echo "ok → scripts/.recorder-bin/ (build: docker build -f scripts/Dockerfile.recorder -t rewindable-claude-rec scripts/)"

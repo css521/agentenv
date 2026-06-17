@@ -10,16 +10,16 @@ The environment versions itself automatically (zero agent intrusion), can roll
 back to **any node**, and can **branch** so an agent explores several approaches in
 parallel branches and keeps the winner.
 
-![agentenv demo: whole-environment rollback + branch exploration](./docs/demo.gif)
+![Claude Code deletes its own binary, then rolls the environment back via MCP and recovers it](./docs/claude-rewind.gif)
 
-> The agent deletes `/usr/local/bin/greet`, corrupts `/etc/motd`, and `rm -rf`s the
-> project — one `agentenv checkout` brings *all of it* back. Then three candidate
-> branches are explored from the same base; the one that passes is kept.
-> Recorded as **uid 1001, no `--privileged`** (the restricted-pod case).
+> Real Claude Code, running inside agentenv: it deletes `/usr/local/bin/claude`
+> (its own binary, system-wide — `git` cannot undo this), then calls the
+> `agentenv__checkout` MCP tool to roll the WHOLE environment back, and the
+> binary is restored. The Claude session itself keeps running throughout.
+> Reproducible from [`examples/claude-code/`](./examples/claude-code/); re-record
+> the GIF with [`scripts/record-claude-tui.sh`](./scripts/record-claude-tui.sh).
 
-See [`DESIGN.md`](./DESIGN.md) for the architecture, and
-[`examples/demo/`](./examples/demo/) for the demo (one command).
-Re-record the GIF with [`scripts/make-demo-gif.sh`](./scripts/make-demo-gif.sh).
+See [`DESIGN.md`](./DESIGN.md) for the architecture.
 
 ## Install
 
@@ -234,7 +234,6 @@ The core E2E suite (auto-capture, rollback, branch tournament) is in
 make verify-rootless     # rootless E2E: uid 1001, no --privileged
 make verify-supervise    # supervise + out-of-band ctl rollback
 make verify-btrfs        # privileged btrfs path (-tags btrfs)
-bash examples/demo/killer-demo.sh   # narrated branch-exploration demo
 ```
 
 The MCP path has its own dedicated harness under `verify/docker/`:
@@ -280,9 +279,10 @@ internal/image           seed-from-dir / extract-tarball, portable
 internal/watch           inotify recursive watcher
 internal/btrfs           btrfs SDK wrapper (cgo, -tags btrfs only)
 scripts/                 verify-rootless.sh, verify.sh, verify-supervise.sh,
-                          make-demo-gif.sh, agentenv-entrypoint.sh
+                          agentenv-entrypoint.sh; record-claude-tui.sh +
+                          fetch-recording-tools.sh + Dockerfile.recorder (GIF tooling)
 verify/docker/           mcp-smoke.sh, rollback-smoke.sh, claude-shell-*
-examples/                demo/, k8s/, branch_explore.py, goclient/, Client.java
+examples/                claude-code/, k8s/, branch_explore.py, goclient/, Client.java
 ```
 
 ## Developing on macOS / Windows
@@ -309,7 +309,6 @@ make vet               # gofmt check + go vet
 make verify-rootless   # full E2E: rootless / uid 1001 / no --privileged
 make verify-btrfs      # full E2E: privileged btrfs path (-tags btrfs)
 make verify-supervise  # supervise + ctl rollback end-to-end
-make demo              # re-record + re-render docs/demo.gif
 make dev-shell         # drop into a persistent Linux dev container (fast iteration)
 ```
 

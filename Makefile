@@ -8,7 +8,6 @@
 #   make vet               gofmt check + go vet
 #   make verify-rootless   end-to-end rootless E2E (Docker on macOS)
 #   make verify-btrfs      end-to-end privileged btrfs E2E (Docker, --privileged)
-#   make demo              record and re-render the README GIF
 #   make dev-shell         drop into a persistent dev container (fast inner loop)
 #   make clean             remove built artifacts
 
@@ -16,7 +15,7 @@ GOOS_LINUX ?= linux
 GOARCH     ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/;s/arm64/arm64/')
 GOPROXY    ?= $(shell go env GOPROXY)
 
-.PHONY: help build test vet verify-rootless verify-btrfs verify-supervise verify-mcp verify-rollback demo dev-shell dev-shell-stop clean
+.PHONY: help build test vet verify-rootless verify-btrfs verify-supervise verify-mcp verify-rollback dev-shell dev-shell-stop clean
 
 help:
 	@awk 'BEGIN{FS=":.*##"; printf "Targets:\n"} /^[a-zA-Z_-]+:.*##/ { printf "  %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -66,9 +65,6 @@ verify-rollback: ## MCP-driven end-to-end rollback (asserts files actually rever
 	docker run --rm --platform=linux/$(GOARCH) \
 	  --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
 	  agentenv-rollback-smoke
-
-demo: ## record and re-render docs/demo.gif (the README GIF)
-	bash scripts/make-demo-gif.sh
 
 # --- Persistent dev container: fast inner loop on macOS -----------------------
 # `make dev-shell` starts (or reattaches to) a long-running container with the

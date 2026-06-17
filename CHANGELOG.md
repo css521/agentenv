@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- New README hero GIF: real Claude Code, running inside `rewindable-claude`,
+  deletes its own binary then calls `agentenv__checkout` MCP tool to roll the
+  whole environment back — the binary is restored, the Claude session keeps
+  running. The one demo `git` can't reproduce.
+- `scripts/record-claude-tui.sh` + `scripts/fetch-recording-tools.sh` +
+  `scripts/Dockerfile.recorder`: apt-free recording pipeline (static
+  `asciinema` v3 + `agg` + a bundled monospace TTF; `agg --font-dir` covers
+  Claude TUI's box-drawing glyphs via a DejaVu fallback). Recorder image is a
+  pure `COPY` over `rewindable-claude` — seconds to build.
+
+### Removed
+- Obsolete shell-scripted demos and recorders that the real Claude Code GIF
+  supersedes: `examples/demo/` (killer-demo + self-rollback-demo + README),
+  `scripts/make-demo-gif.sh`, `scripts/make-claude-gif.sh`,
+  `scripts/_claude-gif-inner.sh`, `scripts/rewindable-claude.sh`,
+  `docs/demo.{cast,gif}`, `docs/self-rollback.{cast,gif}`,
+  Makefile `demo` target.
+
 ## [0.2.0] - 2026-06-16
 
 The "agent rolls back itself" release: an agent can now explore, undo, and

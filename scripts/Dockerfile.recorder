@@ -9,10 +9,16 @@ FROM rewindable-claude
 # Static tools (no apt, no python). asciinema v3 records; agg renders cast→GIF.
 COPY .recorder-bin/asciinema /usr/local/bin/asciinema
 COPY .recorder-bin/agg       /usr/local/bin/agg
+# Two fonts: JetBrains Mono for code (primary), DejaVu Sans Mono as fallback
+# for box-drawing (U+2500–U+259F) and geometric shapes (U+25A0–U+25FF) — Claude
+# Code's TUI uses '⏺', boxes, etc., and JetBrainsMono alone shows them as ▢.
 COPY .recorder-bin/JetBrainsMono-Regular.ttf /usr/local/share/fonts/JetBrainsMono-Regular.ttf
+COPY .recorder-bin/DejaVuSansMono.ttf        /usr/local/share/fonts/DejaVuSansMono.ttf
 RUN chmod 0755 /usr/local/bin/asciinema /usr/local/bin/agg
 
-# agg looks fonts up by directory; point demos at this one.
-ENV AGENTENV_GIF_FONT_DIR=/usr/local/share/fonts AGENTENV_GIF_FONT="JetBrains Mono"
+# agg accepts a comma-separated family list; it falls back per-glyph from left
+# to right. Listing DejaVu after JetBrains Mono covers the missing TUI glyphs.
+ENV AGENTENV_GIF_FONT_DIR=/usr/local/share/fonts \
+    AGENTENV_GIF_FONT="JetBrains Mono,DejaVu Sans Mono"
 
 ENTRYPOINT ["/usr/local/bin/rewindable-claude-entrypoint"]
