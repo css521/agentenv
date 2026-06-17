@@ -5,19 +5,44 @@ agentenv is **language-agnostic** on both sides:
 - **Workloads**: capture/rollback happens at the *filesystem* level, so the agent
   can build/run anything — `go build`, `mvn package`, `pip install`, `cargo build`,
   `npm i` — and it's all snapshotted regardless of language.
-- **Drivers**: you control agentenv from any language via either the **CLI**
-  (`agentenv checkout <id>`, `agentenv log`, ...) or the **newline-JSON unix-socket
-  protocol** (`agentenv daemon`). Both are language-neutral contracts; no per-language
-  SDK is required.
+- **Drivers**: three ways to drive agentenv, each language-neutral:
+  1. **CLI** — `agentenv checkout <id>`, `agentenv log`, `agentenv delete <id>`,
+     `agentenv tournament …`. When a `daemon`/`supervise` holds the lock,
+     mutating commands auto-route through its socket — same command works
+     whether or not a daemon is up.
+  2. **Socket protocol** (newline-JSON, one request → one response or stream)
+     — what `daemon` + `supervise` serve; the `goclient` / `branch_explore.py` /
+     `Client.java` examples here use it directly.
+  3. **MCP** — `agentenv mcp` is a Model Context Protocol server over stdio.
+     Use it from **Claude Code** (the headline path); the
+     [`claude-code/`](./claude-code/) sub-example ships a ready-to-run image.
 
-## The protocol (one JSON request/response per line)
+## The socket protocol (one JSON request/response per line)
 
 ```
-{"op":"exec","cmd":"go build ./..."}  -> {"ok":true,"exit":0,"stdout":"...","node":"<id>","head":"<id>"}
-{"op":"checkout","node":"<id>"}       -> {"ok":true,"head":"<id>"}
-{"op":"log"} {"op":"branches"} {"op":"head"} {"op":"diff","a":"x","b":"y"} {"op":"show","node":"x"}
-{"op":"spawn","cmd":"..."} {"op":"commit","message":"..."} {"op":"ps"} {"op":"kill","pid":N} {"op":"gc"}
+# environment changes (multi-frame streams)
+{"op":"exec","cmd":"go build ./..."}     -> {"stdout":"..."} {"stdout":"..."} {"ok":true,"exit":0,"node":"<id>","head":"<id>"}
+{"op":"spawn","cmd":"server &"}          -> {"ok":true,"pid":N}
+
+# history
+{"op":"head"}                             -> {"ok":true,"head":"<id>"}
+{"op":"log"} {"op":"branches"}            -> {"ok":true,"nodes":[…]}
+{"op":"show","node":"<id>"}               -> {"ok":true,"changes":[…]}
+{"op":"diff","a":"<id>","b":"<id>"}       -> {"ok":true,"changes":[…]}
+
+# mutation
+{"op":"commit","message":"…"}             -> {"ok":true,"node":"<id>","head":"<id>"}
+{"op":"checkout","node":"<id>"}           -> {"ok":true,"head":"<id>"}
+{"op":"delete","node":"<id>"}             -> {"ok":true,"head":"<id>"}                       # v0.2.0
+{"op":"tag","name":"winner","ref":"<id>"} -> {"ok":true}
+{"op":"tournament","base":"<ref>","test":"<cmd>","candidates":[…]} -> {"ok":true,"branches":[…],"winner":"…"}
+
+# processes / disk
+{"op":"ps"} {"op":"kill","pid":N} {"op":"gc"}
 ```
+
+Error frames have `{"error":"…"}` instead of `{"ok":true,…}`. Streaming ops
+(currently `exec`) end with a terminal frame carrying `ok` or `error`.
 
 ## Clients (all stdlib, no dependencies)
 
@@ -33,9 +58,19 @@ that passes the test — purely over the socket.
 
 ## Simplest driver: the CLI
 
-Any orchestrator can just shell out:
+Any orchestrator can just shell out. When a daemon/supervise is running, the
+CLI transparently routes through its socket (no `--socket` needed):
 
 ```sh
 node=$(agentenv head)
 agentenv exec -- bash -lc 'make test' || agentenv checkout "$node"   # undo on failure
+agentenv delete "$node"                                              # prune a dead end
 ```
+
+## Claude Code via MCP
+
+The fastest way to see agentenv shine. See [`claude-code/`](./claude-code/):
+one `docker run -it ghcr.io/css521/rewindable-claude` lands you in a sandbox
+where Claude Code can edit, install, and **roll back its OWN environment** via
+the `agentenv__checkout` / `agentenv__delete` MCP tools — without exiting the
+session.

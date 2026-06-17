@@ -88,13 +88,14 @@ agentenv shell                  interactive shell inside the env (human/debug)
 agentenv exec -- <cmd...>       run one command in the env (scripting/CI)
 
 # out-of-band client (talks to a running daemon/supervise, no repo lock needed)
-agentenv ctl <op> [args]        log | head | branches | exec | checkout | diff | ...
+agentenv ctl <op> [args]        log | head | branches | exec | checkout | delete | diff | ...
 
 # setup / history / inspection
 agentenv init --from <dir|/> | --tarball <path|URL>
                                 seed root from an existing dir, or extract a tar(.gz)
 agentenv commit -m "msg"        manual snapshot (auto-capture usually does this)
 agentenv checkout <ref>         roll the whole env back to any node (accepts tag/prefix)
+agentenv delete <ref>           remove a node (children re-parent; HEAD/only-node refused)
 agentenv tag [name] [ref]       list/get/set named refs (e.g. tag winner <id>)
 agentenv tournament --base <ref> --test "<cmd>" -- "cand1" "cand2" ...
                                 fork base, run each candidate, keep first that passes test
