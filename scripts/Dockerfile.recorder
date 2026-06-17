@@ -1,0 +1,18 @@
+# Recorder image: rewindable-claude + asciinema + agg, so make-claude-gif.sh
+# can record without re-installing the (slow) python/asciinema stack every run.
+#   docker build --platform=linux/arm64 -f scripts/Dockerfile.recorder \
+#     --build-arg AGG_LOCAL=... -t rewindable-claude-rec scripts/   (see make-claude-gif.sh)
+FROM rewindable-claude
+
+RUN sed -ri 's#deb\.debian\.org#mirrors.aliyun.com#g' /etc/apt/sources.list.d/*.sources 2>/dev/null || true \
+ && apt-get update -qq \
+ && apt-get install -y -qq python3-pip fonts-dejavu-core >/dev/null 2>&1 \
+ && (pip3 install --quiet --break-system-packages --index-url https://mirrors.aliyun.com/pypi/simple/ asciinema \
+     || pip3 install --quiet --break-system-packages asciinema)
+
+# agg (the cast→GIF renderer) is copied in from the build context.
+COPY agg /usr/local/bin/agg
+RUN chmod 0755 /usr/local/bin/agg
+
+# Restore the rewindable-claude entrypoint (FROM inherits it, but be explicit).
+ENTRYPOINT ["/usr/local/bin/rewindable-claude-entrypoint"]
