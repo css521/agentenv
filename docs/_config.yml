@@ -1,0 +1,14 @@
+title: agentenv
+description: Rewindable virtual environments for AI Agents
+url: https://css521.github.io
+baseurl: /agentenv
+
+markdown: kramdown
+kramdown:
+  input: GFM
+
+exclude:
+  - openapi.json
+  - "*.cast"
+  - "*.gif"
+  - README.md

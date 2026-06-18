@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: 'zh-CN' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title }} — agentenv</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Inter", sans-serif;
+    color: #1f2328;
+    background: #fff;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── top bar ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid #eaecef;
+  }
+  .topbar-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar a {
+    text-decoration: none;
+    color: #57606a;
+    font-size: 14px;
+    transition: color .15s;
+  }
+  .topbar a:hover { color: #1f2328; }
+  .topbar .logo {
+    font-weight: 700;
+    font-size: 17px;
+    color: #1f2328;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar .logo-dot {
+    width: 8px; height: 8px;
+    background: #38bdf8;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .topbar-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .topbar-links a {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .topbar-links a:hover { background: #f6f8fa; }
+  .topbar-links a.active {
+    color: #1f2328;
+    background: #f0f3f6;
+  }
+  .topbar-links .sep {
+    color: #d0d7de;
+    margin: 0 4px;
+    user-select: none;
+  }
+  .topbar-links .gh {
+    margin-left: 8px;
+    padding: 6px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .topbar-links .gh:hover {
+    border-color: #afb8c1;
+    background: #f6f8fa;
+  }
+
+  /* ── article area ── */
+  .article {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 48px 28px 96px;
+    line-height: 2.0;
+    font-size: 17px;
+    letter-spacing: .3px;
+  }
+  .article h1 {
+    font-size: 32px;
+    line-height: 1.35;
+    font-weight: 800;
+    margin: 0 0 12px;
+    letter-spacing: -.3px;
+    text-align: center;
+  }
+  .article-meta {
+    text-align: center;
+    color: #8b949e;
+    font-size: 14px;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid #eaecef;
+  }
+  .article h2 {
+    font-size: 23px;
+    font-weight: 700;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eaecef;
+  }
+  .article h3 {
+    font-size: 19px;
+    font-weight: 600;
+    margin: 36px 0 14px;
+    color: #24292f;
+  }
+  .article p {
+    margin: 0 0 24px;
+    text-indent: 2em;
+  }
+  .article li > p { text-indent: 0; }
+  .article strong { font-weight: 600; color: #0b1f33; }
+  .article a {
+    color: #2563eb;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(37,99,235,.25);
+    transition: border-color .15s;
+  }
+  .article a:hover { border-bottom-color: #2563eb; }
+  .article hr {
+    border: none;
+    border-top: 1px solid #eaecef;
+    margin: 48px 0;
+  }
+  .article code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: .86em;
+    background: #eff1f3;
+    color: #c0341d;
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+  .article pre {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 18px 22px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.65;
+    margin: 16px 0 28px;
+  }
+  .article pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+  }
+  .article blockquote {
+    margin: 16px 0 28px;
+    padding: 4px 20px;
+    color: #57606a;
+    border-left: 4px solid #d0d7de;
+    background: #f6f8fa;
+    border-radius: 0 6px 6px 0;
+  }
+  .article table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 28px;
+    font-size: 15px;
+  }
+  .article th, .article td {
+    border: 1px solid #d0d7de;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  .article th {
+    background: #f6f8fa;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .article ul, .article ol {
+    padding-left: 2em;
+    margin: 0 0 24px;
+  }
+  .article li { margin-bottom: 6px; }
+  .mermaid {
+    text-align: center;
+    margin: 28px 0;
+    background: #f8f9fb;
+    padding: 24px;
+    border-radius: 10px;
+    border: 1px solid #eaecef;
+  }
+
+  /* ── footer ── */
+  .article-footer {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 0 28px 64px;
+    text-align: center;
+  }
+  .article-footer .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #57606a;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 8px 20px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    transition: all .15s;
+  }
+  .article-footer .back:hover {
+    background: #f6f8fa;
+    border-color: #afb8c1;
+    color: #24292f;
+  }
+
+  @media (max-width: 640px) {
+    .article { padding: 32px 18px 64px; font-size: 16px; }
+    .article h1 { font-size: 26px; }
+    .article h2 { font-size: 20px; }
+    .topbar-inner { padding: 0 16px; }
+    .topbar-links .gh { display: none; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="{{ '/' | relative_url }}"><span class="logo-dot"></span>agentenv</a>
+    <div class="topbar-links">
+      <a href="{{ '/zh/' | relative_url }}" {% if page.lang == 'zh-CN' %}class="active"{% endif %}>中文</a>
+      <span class="sep">/</span>
+      <a href="{{ '/en/' | relative_url }}" {% if page.lang == 'en' %}class="active"{% endif %}>English</a>
+      <a class="gh" href="https://github.com/css521/agentenv">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main class="article">
+{{ content }}
+</main>
+
+<div class="article-footer">
+  <a class="back" href="{{ '/' | relative_url }}">&larr; Back to Home</a>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll('.language-mermaid pre code, pre code.language-mermaid').forEach(function(codeEl) {
+    var container = codeEl.closest('.language-mermaid') || codeEl.closest('pre');
+    var div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = codeEl.textContent;
+    container.parentElement.replaceChild(div, container);
+  });
+  mermaid.initialize({ startOnLoad: true, theme: "default", flowchart: { curve: "basis" } });
+});
+</script>
+
+</body>
+</html>
