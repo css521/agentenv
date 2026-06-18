@@ -10,5 +10,5 @@ kramdown:
 exclude:
   - openapi.json
   - "*.cast"
-  - "*.gif"
   - README.md
+  - Gemfile.lock
